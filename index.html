@@ -72,10 +72,6 @@
       border: 0; border-radius: 16px; padding: 16px; font-size: 16px;
       font-weight: 900; letter-spacing: .04em; cursor: pointer;
     }
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    .stat { background: #101114; border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
-    .stat b { display: block; margin-bottom: 4px; }
-    .stat span { color: var(--muted); font-size: 12px; }
     .hidden { display: none; }
     .ok { color: #b9ff7a; margin-top: 12px; }
     .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
@@ -118,11 +114,10 @@
             </div>
           </div>
           <button class="go" id="btnSwap">CONNECT WALLET</button>
+          <button class="go" id="btnFaucetMain">FAUCET</button>
         </div>
-        <div class="stats">
-          <div class="stat"><b>KIT</b><span id="poolKit">Pool —</span></div>
-          <div class="stat"><b>SPCX</b><span id="poolSpcx">Pool —</span></div>
-        </div>
+        <span id="poolKit" class="hidden"></span>
+        <span id="poolSpcx" class="hidden"></span>
       </div>
 
       <div id="viewLiq" class="swap-card hidden">
@@ -267,21 +262,22 @@
       return out;
     }
 
+    async function pedirFaucet() {
+      const { faucet } = contracts();
+      log("Pedindo tokens...", true);
+      await (await faucet.claim()).wait();
+      await refresh();
+      log("Faucet ok: 10 KIT + 10 SPCX", true);
+    }
+
     document.getElementById("amountIn").addEventListener("input", () => quote().catch(() => {}));
     document.getElementById("btnConnect").onclick = async () => {
       try { await connect(); } catch (e) { const m = e.message || e; log(m, false); alert(m); }
     };
     document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
     document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
-    document.getElementById("btnFaucet").onclick = async () => {
-      try {
-        const { faucet } = contracts();
-        log("Pedindo tokens...", true);
-        await (await faucet.claim()).wait();
-        await refresh();
-        log("Faucet ok: 10 KIT + 10 SPCX", true);
-      } catch (e) { log(e.message || e, false); }
-    };
+    document.getElementById("btnFaucet").onclick = () => pedirFaucet().catch((e) => log(e.message || e, false));
+    document.getElementById("btnFaucetMain").onclick = () => pedirFaucet().catch((e) => log(e.message || e, false));
     document.getElementById("btnApprove").onclick = async () => {
       try {
         const { kit, spcx } = contracts();
