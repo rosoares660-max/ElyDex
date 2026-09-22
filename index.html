@@ -17,7 +17,7 @@
 <body>
   <h2>Mini DEX</h2>
   <p>KIT / SPCX · Elysium Testnet (99801)</p>
-  <button id="btnConnect">Conectar carteira</button>
+<button id="btnConnect" type="button">Conectar carteira</button>
   <div id="account"></div>
   <div id="log"></div>
 
@@ -58,6 +58,23 @@
   </div>
 
   <script>
+    document.addEventListener("DOMContentLoaded", function () {
+  var botao = document.getElementById("btnConnect");
+  if (!botao) return;
+  botao.addEventListener("click", async function () {
+    document.getElementById("log").innerText = "Clicou";
+    if (!window.ethereum) {
+      document.getElementById("log").innerText = "Sem MetaMask nesta pagina";
+      return;
+    }
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      document.getElementById("log").innerText = "MetaMask respondeu";
+    } catch (e) {
+      document.getElementById("log").innerText = e.message || String(e);
+    }
+  });
+});
     const CHAIN_ID = 99801;
     const RPC = "https://testnet-rpc.elysium.kinetiq.xyz";
     const KIT = "0xc8859BB6cfF436C5ae2B623364Ef1f024cc7FcB5";
