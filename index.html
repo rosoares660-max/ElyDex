@@ -6,6 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
     body { font-family: sans-serif; max-width: 420px; margin: 40px auto; background: #0f1115; color: #eee; }
+    p { color: #aaa; }
     input, button, select { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; border-radius: 8px; border: 0; }
     button { cursor: pointer; background: #4f8cff; color: #fff; font-weight: 600; }
     .ok { color: #5ee29a; }
@@ -18,23 +19,32 @@
   <p>KIT / SPCX · Elysium Testnet (99801)</p>
   <button id="btnConnect">Conectar carteira</button>
   <div id="account"></div>
-  <div id="log" class="err"></div>
+  <div id="log"></div>
 
   <div class="box">
     <b>Saldos</b>
     <div id="balances">Conecte a carteira</div>
     <button id="btnRefresh">Atualizar saldos</button>
   </div>
+
+  <div class="box">
+    <b>Faucet de teste</b>
+    <p>10 KIT + 10 SPCX, 1x por hora. Precisa de HYPE para o gas.</p>
+    <button id="btnFaucet">Pedir tokens</button>
+  </div>
+
   <div class="box">
     <b>1. Aprovar tokens</b>
     <button id="btnApprove">Aprovar KIT e SPCX para a AMM</button>
   </div>
+
   <div class="box">
     <b>2. Adicionar liquidez</b>
     <input id="liqA" placeholder="KIT (ex: 100)" />
     <input id="liqB" placeholder="SPCX (ex: 100)" />
     <button id="btnLiq">Add liquidity</button>
   </div>
+
   <div class="box">
     <b>3. Swap</b>
     <select id="tokenIn">
@@ -53,10 +63,12 @@
     const KIT = "0xc8859BB6cfF436C5ae2B623364Ef1f024cc7FcB5";
     const SPCX = "0xbB23E11476c4E09E932EA0b826089427d7Bb4Ba8";
     const AMM = "0x67469B9aD6135473136014C42f79CB478D8aD2bc";
+    const FAUCET = "0x5D05dEf10B7d5365CA8ede46Ff35E5a4046A9013";
 
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
-      "function balanceOf(address) view returns (uint256)"
+      "function balanceOf(address) view returns (uint256)",
+      "function transfer(address to, uint256 value) returns (bool)"
     ];
     const ammAbi = [
       "function reserveA() view returns (uint256)",
@@ -65,6 +77,7 @@
       "function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) view returns (uint256)",
       "function swap(address tokenIn, uint256 amountIn, uint256 minOut) returns (uint256)"
     ];
+    const faucetAbi = ["function claim()"];
 
     let provider, signer, addr;
 
@@ -75,7 +88,7 @@
 
     function getEthereum() {
       if (window.ethereum) return window.ethereum;
-      throw new Error("MetaMask nao encontrada. Liga a extensao neste Chrome e recarrega a pagina.");
+      throw new Error("MetaMask nao encontrada neste Chrome.");
     }
 
     async function ensureChain(eth) {
@@ -101,10 +114,6 @@
     }
 
     async function connect() {
-      log("Cliqueu conectar...", true);
-      if (typeof ethers === "undefined") {
-        throw new Error("Nao carregou a biblioteca ethers. Recarrega a pagina.");
-      }
       const eth = getEthereum();
       await ensureChain(eth);
       provider = new ethers.BrowserProvider(eth);
@@ -121,7 +130,8 @@
       return {
         kit: new ethers.Contract(KIT, tokenAbi, signer),
         spcx: new ethers.Contract(SPCX, tokenAbi, signer),
-        amm: new ethers.Contract(AMM, ammAbi, signer)
+        amm: new ethers.Contract(AMM, ammAbi, signer),
+        faucet: new ethers.Contract(FAUCET, faucetAbi, signer)
       };
     }
 
@@ -131,70 +141,4 @@
         kit.balanceOf(addr),
         spcx.balanceOf(addr),
         amm.reserveA(),
-        amm.reserveB()
-      ]);
-      document.getElementById("balances").innerHTML =
-        "Seu KIT: " + ethers.formatEther(a) + "<br>" +
-        "Seu SPCX: " + ethers.formatEther(b) + "<br>" +
-        "Pool KIT: " + ethers.formatEther(ra) + "<br>" +
-        "Pool SPCX: " + ethers.formatEther(rb);
-    }
-
-    document.getElementById("btnConnect").onclick = async () => {
-      try { await connect(); }
-      catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        log(msg, false);
-        alert(msg);
-      }
-    };
-    document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
-    document.getElementById("btnApprove").onclick = async () => {
-      try {
-        const { kit, spcx } = contracts();
-        log("Aprovando KIT...", true);
-        await (await kit.approve(AMM, ethers.MaxUint256)).wait();
-        log("Aprovando SPCX...", true);
-        await (await spcx.approve(AMM, ethers.MaxUint256)).wait();
-        log("Approve ok", true);
-      } catch (e) { log(e.message || e, false); }
-    };
-    document.getElementById("btnLiq").onclick = async () => {
-      try {
-        const { amm } = contracts();
-        const a = ethers.parseEther(document.getElementById("liqA").value);
-        const b = ethers.parseEther(document.getElementById("liqB").value);
-        log("Enviando liquidez...", true);
-        await (await amm.addLiquidity(a, b)).wait();
-        await refresh();
-        log("Liquidez adicionada", true);
-      } catch (e) { log(e.message || e, false); }
-    };
-    async function quote() {
-      const { amm } = contracts();
-      const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
-      const ra = await amm.reserveA();
-      const rb = await amm.reserveB();
-      const kitToSpcx = document.getElementById("tokenIn").value === "A";
-      const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
-      document.getElementById("quote").innerText =
-        "Sai cerca de " + ethers.formatEther(out) + (kitToSpcx ? " SPCX" : " KIT");
-      return out;
-    }
-    document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
-    document.getElementById("btnSwap").onclick = async () => {
-      try {
-        const { amm } = contracts();
-        const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
-        const out = await quote();
-        const minOut = out * 99n / 100n;
-        const tokenIn = document.getElementById("tokenIn").value === "A" ? KIT : SPCX;
-        log("Enviando swap...", true);
-        await (await amm.swap(tokenIn, amountIn, minOut)).wait();
-        await refresh();
-        log("Swap ok", true);
-      } catch (e) { log(e.message || e, false); }
-    };
-  </script>
-</body>
-</html>
+        amm
