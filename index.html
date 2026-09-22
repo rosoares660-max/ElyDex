@@ -3,124 +3,148 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ElyDex · KIT / SPCX</title>
+  <title>ElyDex</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
-    :root {
-      --bg: #07080d;
-      --card: #12141c;
-      --line: #242833;
-      --text: #f3f5f8;
-      --muted: #9aa3b2;
-      --blue: #4f8cff;
-      --blue2: #7c5cff;
-    }
+    :root { --green:#c8ff3d; --card:#17181c; --line:#2a2c31; --text:#f4f4f5; --muted:#8b8f98; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: Inter, Segoe UI, sans-serif;
-      background:
-        radial-gradient(900px 400px at 10% -10%, #1a2a55 0%, transparent 50%),
-        radial-gradient(700px 300px at 100% 0%, #2a1850 0%, transparent 45%),
-        var(--bg);
       color: var(--text);
+      background:
+        linear-gradient(#111214 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(90deg, #111214 1px, transparent 1px) 0 0 / 56px 56px,
+        #0b0c0e;
+      min-height: 100vh;
     }
-    .wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
-    .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; }
-    .brand span { color: var(--blue); }
-    .chip {
-      font-size: 12px; color: #b9c4ff; background: #182038;
-      border: 1px solid #2c3a66; padding: 6px 10px; border-radius: 999px;
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 18px 22px;
     }
-    .hero { margin-bottom: 18px; }
-    .hero p { margin: 6px 0 0; color: var(--muted); }
-    .grid { display: grid; gap: 14px; }
-    @media (min-width: 720px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-      .wide { grid-column: 1 / -1; }
+    .nav { display: flex; gap: 6px; background: #16171b; padding: 6px; border-radius: 999px; border: 1px solid var(--line); }
+    .nav button {
+      background: transparent; color: #c7c9ce; border: 0; padding: 8px 14px;
+      border-radius: 999px; cursor: pointer; font-weight: 700;
     }
-    .card {
+    .nav button.on { background: #2a2c31; color: #fff; }
+    .right { display: flex; gap: 8px; align-items: center; }
+    .connect-sm {
+      background: #fff; color: #111; border: 0; border-radius: 999px;
+      padding: 8px 14px; font-weight: 800; cursor: pointer;
+    }
+    main { display: flex; justify-content: center; padding: 40px 16px 80px; }
+    .panel { width: 100%; max-width: 430px; }
+    .swap-card {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
+      border-radius: 24px;
+      padding: 12px;
     }
-    .card h3 { margin: 0 0 10px; font-size: 14px; color: #d5dbe6; }
-    .addr { font-size: 12px; color: #8ea0c8; word-break: break-all; margin: 8px 0 0; }
-    .balances { line-height: 1.55; color: #dce3ef; font-size: 14px; }
-    input, select, button {
-      width: 100%; padding: 11px 12px; margin: 6px 0;
-      border: 0; border-radius: 12px; font-size: 14px;
+    .leg {
+      background: #101114;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 14px;
+      margin: 8px 0;
     }
-    input, select { background: #0c0e14; color: var(--text); border: 1px solid var(--line); }
-    button { cursor: pointer; font-weight: 700; }
-    .primary {
-      background: linear-gradient(90deg, var(--blue), var(--blue2));
-      color: white;
+    .leg-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+    .leg-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
+    .token {
+      display: flex; align-items: center; gap: 8px;
+      background: #1d1f24; border: 1px solid #32343a;
+      padding: 8px 10px; border-radius: 999px; font-weight: 800;
     }
-    .ghost { background: #1b2030; color: #d5def0; }
-    .ok { color: #5ee29a; margin-top: 10px; }
-    .err { color: #ff8b8b; margin-top: 10px; white-space: pre-wrap; }
-    #quote { color: #c9d4ff; min-height: 18px; font-size: 13px; }
+    .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #111; font-weight: 900; }
+    .kit { background: #7aa2ff; }
+    .spcx { background: var(--green); }
+    .amt {
+      width: 150px; background: transparent; border: 0; color: #fff;
+      font-size: 28px; text-align: right; outline: none;
+    }
+    .flip-wrap { display: flex; justify-content: center; margin: -6px 0; position: relative; z-index: 2; }
+    .flip {
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
+      background: #1b1c20; color: #fff; cursor: pointer; font-size: 16px;
+    }
+    .go {
+      width: 100%; margin-top: 10px; background: var(--green); color: #111;
+      border: 0; border-radius: 16px; padding: 16px; font-size: 16px;
+      font-weight: 900; letter-spacing: .04em; cursor: pointer;
+    }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .stat { background: #101114; border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+    .stat b { display: block; margin-bottom: 4px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .hidden { display: none; }
+    .ok { color: #b9ff7a; margin-top: 12px; }
+    .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+    input.plain, select.plain {
+      width: 100%; padding: 11px; margin: 6px 0; border-radius: 12px;
+      border: 1px solid var(--line); background: #0f1013; color: #fff;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">Ely<span>Dex</span></div>
-      <div class="chip">Elysium Testnet · 99801</div>
-    </header>
-
-    <div class="hero">
-      <h2 style="margin:0;font-size:28px;letter-spacing:-0.04em;">KIT / SPCX</h2>
-      <p>Mini DEX de teste. Sem valor real.</p>
+  <header>
+    <div class="nav">
+      <button class="on" id="tabSwap">Swap</button>
+      <button id="tabLiq">Liquidity</button>
+      <button id="tabFaucet">Faucet</button>
     </div>
-
-    <div class="grid">
-      <div class="card wide">
-        <button id="btnConnect" class="primary">Conectar carteira</button>
-        <div id="account" class="addr"></div>
-      </div>
-
-      <div class="card">
-        <h3>Saldos</h3>
-        <div id="balances" class="balances">Conecte a carteira</div>
-        <button id="btnRefresh" class="ghost">Atualizar saldos</button>
-      </div>
-
-      <div class="card">
-        <h3>Faucet de teste</h3>
-        <p style="margin:0 0 8px;color:#9aa3b2;font-size:13px;">10 KIT + 10 SPCX, 1x por hora. Precisa de HYPE para o gas.</p>
-        <button id="btnFaucet" class="primary">Pedir tokens</button>
-      </div>
-
-      <div class="card">
-        <h3>1. Aprovar tokens</h3>
-        <button id="btnApprove" class="ghost">Aprovar KIT e SPCX para a AMM</button>
-      </div>
-
-      <div class="card">
-        <h3>2. Adicionar liquidez</h3>
-        <input id="liqA" placeholder="KIT (ex: 100)" />
-        <input id="liqB" placeholder="SPCX (ex: 100)" />
-        <button id="btnLiq" class="primary">Add liquidity</button>
-      </div>
-
-      <div class="card wide">
-        <h3>3. Swap</h3>
-        <select id="tokenIn">
-          <option value="A">KIT → SPCX</option>
-          <option value="B">SPCX → KIT</option>
-        </select>
-        <input id="amountIn" placeholder="Quantidade (ex: 10)" />
-        <button id="btnQuote" class="ghost">Ver quanto sai</button>
-        <button id="btnSwap" class="primary">Swap</button>
-        <div id="quote"></div>
-      </div>
+    <div class="right">
+      <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
-    <div id="log"></div>
-  </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <div id="viewSwap">
+        <div class="swap-card">
+          <div class="leg">
+            <div class="leg-top"><span>Sell</span><span id="balSell">0</span></div>
+            <div class="leg-row">
+              <div class="token"><div class="dot kit">K</div> <span id="sellSym">KIT</span></div>
+              <input class="amt" id="amountIn" placeholder="0" />
+            </div>
+          </div>
+          <div class="flip-wrap"><button class="flip" id="btnFlip">↓</button></div>
+          <div class="leg">
+            <div class="leg-top"><span>Buy</span><span id="balBuy">0</span></div>
+            <div class="leg-row">
+              <div class="token"><div class="dot spcx">S</div> <span id="buySym">SPCX</span></div>
+              <input class="amt" id="amountOut" placeholder="0" readonly />
+            </div>
+          </div>
+          <button class="go" id="btnSwap">CONNECT WALLET</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>KIT</b><span id="poolKit">Pool —</span></div>
+          <div class="stat"><b>SPCX</b><span id="poolSpcx">Pool —</span></div>
+        </div>
+      </div>
+
+      <div id="viewLiq" class="swap-card hidden">
+        <p class="sub">Coloca os dois tokens no pool.</p>
+        <input class="plain" id="liqA" placeholder="KIT (ex: 100)" />
+        <input class="plain" id="liqB" placeholder="SPCX (ex: 100)" />
+        <button class="go" id="btnApprove">APROVAR TOKENS</button>
+        <button class="go" id="btnLiq" style="margin-top:8px;background:#fff;">ADD LIQUIDITY</button>
+      </div>
+
+      <div id="viewFaucet" class="swap-card hidden">
+        <p class="sub">10 KIT + 10 SPCX, 1x por hora. Precisas de HYPE para o gas.</p>
+        <button class="go" id="btnFaucet">PEDIR TOKENS</button>
+      </div>
+
+      <div id="account" class="sub" style="margin-top:12px;"></div>
+      <div id="log"></div>
+      <button id="btnRefresh" class="hidden">Atualizar saldos</button>
+      <button id="btnQuote" class="hidden">quote</button>
+      <select id="tokenIn" class="hidden"><option value="A" selected>A</option><option value="B">B</option></select>
+    </div>
+  </main>
 
   <script>
     const CHAIN_ID = 99801;
@@ -143,20 +167,40 @@
     ];
     const faucetAbi = ["function claim()"];
 
-    let provider, signer, addr;
+    let provider, signer, addr, kitToSpcx = true;
 
     function log(msg, ok) {
       document.getElementById("log").innerHTML =
         `<div class="${ok ? "ok" : "err"}">${msg}</div>`;
     }
+    function show(id) {
+      ["viewSwap","viewLiq","viewFaucet"].forEach((v) =>
+        document.getElementById(v).classList.toggle("hidden", v !== id)
+      );
+      document.getElementById("tabSwap").classList.toggle("on", id === "viewSwap");
+      document.getElementById("tabLiq").classList.toggle("on", id === "viewLiq");
+      document.getElementById("tabFaucet").classList.toggle("on", id === "viewFaucet");
+    }
+    document.getElementById("tabSwap").onclick = () => show("viewSwap");
+    document.getElementById("tabLiq").onclick = () => show("viewLiq");
+    document.getElementById("tabFaucet").onclick = () => show("viewFaucet");
+
+    function syncDir() {
+      document.getElementById("tokenIn").value = kitToSpcx ? "A" : "B";
+      document.getElementById("sellSym").innerText = kitToSpcx ? "KIT" : "SPCX";
+      document.getElementById("buySym").innerText = kitToSpcx ? "SPCX" : "KIT";
+    }
+    document.getElementById("btnFlip").onclick = () => {
+      kitToSpcx = !kitToSpcx;
+      syncDir();
+      document.getElementById("amountOut").value = "";
+      quote().catch(() => {});
+    };
 
     async function ensureChain() {
       const hex = "0x" + CHAIN_ID.toString(16);
       try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: hex }]
-        });
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
       } catch (e) {
         if (e.code === 4902 || String(e.message).includes("Unrecognized")) {
           await window.ethereum.request({
@@ -169,9 +213,7 @@
               blockExplorerUrls: ["https://elysium.kinetiq.xyz/testnet-explorer"]
             }]
           });
-        } else {
-          throw e;
-        }
+        } else { throw e; }
       }
     }
 
@@ -183,6 +225,8 @@
       signer = await provider.getSigner();
       addr = await signer.getAddress();
       document.getElementById("account").innerText = addr;
+      document.getElementById("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
+      document.getElementById("btnSwap").innerText = "SWAP";
       await refresh();
       log("Carteira conectada", true);
     }
@@ -196,31 +240,39 @@
       };
     }
 
+    function short(n) {
+      const x = Number(ethers.formatEther(n));
+      return x.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+    }
+
     async function refresh() {
       const { kit, spcx, amm } = contracts();
       const [a, b, ra, rb] = await Promise.all([
-        kit.balanceOf(addr),
-        spcx.balanceOf(addr),
-        amm.reserveA(),
-        amm.reserveB()
+        kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB()
       ]);
-      document.getElementById("balances").innerHTML =
-        `Seu KIT: ${ethers.formatEther(a)}<br>` +
-        `Seu SPCX: ${ethers.formatEther(b)}<br>` +
-        `Pool KIT: ${ethers.formatEther(ra)}<br>` +
-        `Pool SPCX: ${ethers.formatEther(rb)}`;
+      document.getElementById("balSell").innerText = kitToSpcx ? short(a) : short(b);
+      document.getElementById("balBuy").innerText = kitToSpcx ? short(b) : short(a);
+      document.getElementById("poolKit").innerText = "Pool " + short(ra);
+      document.getElementById("poolSpcx").innerText = "Pool " + short(rb);
     }
 
+    async function quote() {
+      if (!signer || !document.getElementById("amountIn").value) return 0n;
+      const { amm } = contracts();
+      const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
+      const ra = await amm.reserveA();
+      const rb = await amm.reserveB();
+      const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
+      document.getElementById("amountOut").value = ethers.formatEther(out);
+      return out;
+    }
+
+    document.getElementById("amountIn").addEventListener("input", () => quote().catch(() => {}));
     document.getElementById("btnConnect").onclick = async () => {
-      try { await connect(); }
-      catch (e) {
-        const msg = e && e.message ? e.message : String(e);
-        log(msg, false);
-        alert(msg);
-      }
+      try { await connect(); } catch (e) { const m = e.message || e; log(m, false); alert(m); }
     };
-    document.getElementById("btnRefresh").onclick = () =>
-      refresh().catch((e) => log(e.message || e, false));
+    document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
+    document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
     document.getElementById("btnFaucet").onclick = async () => {
       try {
         const { faucet } = contracts();
@@ -251,26 +303,14 @@
         log("Liquidez adicionada", true);
       } catch (e) { log(e.message || e, false); }
     };
-    async function quote() {
-      const { amm } = contracts();
-      const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
-      const ra = await amm.reserveA();
-      const rb = await amm.reserveB();
-      const kitToSpcx = document.getElementById("tokenIn").value === "A";
-      const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
-      document.getElementById("quote").innerText =
-        "Sai cerca de " + ethers.formatEther(out) + (kitToSpcx ? " SPCX" : " KIT");
-      return out;
-    }
-    document.getElementById("btnQuote").onclick = () =>
-      quote().catch((e) => log(e.message || e, false));
     document.getElementById("btnSwap").onclick = async () => {
       try {
+        if (!signer) { await connect(); return; }
         const { amm } = contracts();
         const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
         const out = await quote();
         const minOut = out * 99n / 100n;
-        const tokenIn = document.getElementById("tokenIn").value === "A" ? KIT : SPCX;
+        const tokenIn = kitToSpcx ? KIT : SPCX;
         log("Enviando swap...", true);
         await (await amm.swap(tokenIn, amountIn, minOut)).wait();
         await refresh();
