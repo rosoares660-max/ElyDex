@@ -67,8 +67,7 @@
 
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
-      "function balanceOf(address) view returns (uint256)",
-      "function transfer(address to, uint256 value) returns (bool)"
+      "function balanceOf(address) view returns (uint256)"
     ];
     const ammAbi = [
       "function reserveA() view returns (uint256)",
@@ -86,59 +85,7 @@
       document.getElementById("log").innerText = String(msg);
     }
 
-    function getEthereum() {
-      if (window.ethereum) return window.ethereum;
-      throw new Error("MetaMask nao encontrada neste Chrome.");
-    }
-
-    async function ensureChain(eth) {
+    async function ensureChain() {
       const hex = "0x" + CHAIN_ID.toString(16);
       try {
-        await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
-      } catch (e) {
-        if (e.code === 4902 || String(e.message || "").toLowerCase().includes("unrecognized")) {
-          await eth.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: hex,
-              chainName: "Elysium Testnet",
-              nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
-              rpcUrls: [RPC],
-              blockExplorerUrls: ["https://elysium.kinetiq.xyz/testnet-explorer"]
-            }]
-          });
-        } else if (e.code !== 4001) {
-          throw e;
-        }
-      }
-    }
-
-    async function connect() {
-      const eth = getEthereum();
-      await ensureChain(eth);
-      provider = new ethers.BrowserProvider(eth);
-      await provider.send("eth_requestAccounts", []);
-      signer = await provider.getSigner();
-      addr = await signer.getAddress();
-      document.getElementById("account").innerText = addr;
-      await refresh();
-      log("Carteira conectada", true);
-    }
-
-    function contracts() {
-      if (!signer) throw new Error("Conecta a carteira primeiro");
-      return {
-        kit: new ethers.Contract(KIT, tokenAbi, signer),
-        spcx: new ethers.Contract(SPCX, tokenAbi, signer),
-        amm: new ethers.Contract(AMM, ammAbi, signer),
-        faucet: new ethers.Contract(FAUCET, faucetAbi, signer)
-      };
-    }
-
-    async function refresh() {
-      const { kit, spcx, amm } = contracts();
-      const [a, b, ra, rb] = await Promise.all([
-        kit.balanceOf(addr),
-        spcx.balanceOf(addr),
-        amm.reserveA(),
-        amm
+        await window.ethereum
