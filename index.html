@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -121,21 +121,21 @@
       </div>
 
       <div id="viewLiq" class="swap-card hidden">
-        <p class="sub">Coloca os dois tokens no pool.</p>
-        <input class="plain" id="liqA" placeholder="KIT (ex: 100)" />
-        <input class="plain" id="liqB" placeholder="SPCX (ex: 100)" />
-        <button class="go" id="btnApprove">APROVAR TOKENS</button>
+        <p class="sub">Deposit both tokens into the pool.</p>
+        <input class="plain" id="liqA" placeholder="KIT (e.g. 100)" />
+        <input class="plain" id="liqB" placeholder="SPCX (e.g. 100)" />
+        <button class="go" id="btnApprove">APPROVE TOKENS</button>
         <button class="go" id="btnLiq" style="margin-top:8px;background:#fff;">ADD LIQUIDITY</button>
       </div>
 
       <div id="viewFaucet" class="swap-card hidden">
-        <p class="sub">10 KIT + 10 SPCX, 1x por hora. Precisas de HYPE para o gas.</p>
-        <button class="go" id="btnFaucet">PEDIR TOKENS</button>
+        <p class="sub">10 KIT + 10 SPCX, once per hour. You need HYPE for gas.</p>
+        <button class="go" id="btnFaucet">CLAIM TOKENS</button>
       </div>
 
       <div id="account" class="sub" style="margin-top:12px;"></div>
       <div id="log"></div>
-      <button id="btnRefresh" class="hidden">Atualizar saldos</button>
+      <button id="btnRefresh" class="hidden">Refresh</button>
       <button id="btnQuote" class="hidden">quote</button>
       <select id="tokenIn" class="hidden"><option value="A" selected>A</option><option value="B">B</option></select>
     </div>
@@ -160,7 +160,11 @@
       "function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) view returns (uint256)",
       "function swap(address tokenIn, uint256 amountIn, uint256 minOut) returns (uint256)"
     ];
-    const faucetAbi = ["function claim()"];
+    const faucetAbi = [
+      "function claim()",
+      "function lastClaim(address) view returns (uint256)",
+      "function cooldown() view returns (uint256)"
+    ];
 
     let provider, signer, addr, kitToSpcx = true;
 
@@ -213,7 +217,7 @@
     }
 
     async function connect() {
-      if (!window.ethereum) throw new Error("Instale a MetaMask no Chrome");
+      if (!window.ethereum) throw new Error("Install MetaMask in Chrome");
       await ensureChain();
       provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
@@ -223,7 +227,7 @@
       document.getElementById("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
       document.getElementById("btnSwap").innerText = "SWAP";
       await refresh();
-      log("Carteira conectada", true);
+      log("Wallet connected", true);
     }
 
     function contracts() {
@@ -237,7 +241,7 @@
 
     function short(n) {
       const x = Number(ethers.formatEther(n));
-      return x.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+      return x.toLocaleString("en-US", { maximumFractionDigits: 4 });
     }
 
     async function refresh() {
@@ -263,11 +267,28 @@
     }
 
     async function pedirFaucet() {
+      if (!signer) { await connect(); }
       const { faucet } = contracts();
-      log("Pedindo tokens...", true);
+      const last = await faucet.lastClaim(addr);
+      const cd = await faucet.cooldown();
+      const agora = BigInt(Math.floor(Date.now() / 1000));
+      if (last > 0n && agora < last + cd) {
+        alert("The faucet can only be used once per hour.");
+        log("Faucet: wait 1 hour before claiming again", false);
+        return;
+      }
+      log("Claiming tokens...", true);
       await (await faucet.claim()).wait();
       await refresh();
       log("Faucet ok: 10 KIT + 10 SPCX", true);
+    }
+
+    function avisoFaucet(e) {
+      const msg = String(e.message || e);
+      if (msg.toLowerCase().includes("cooldown") || msg.toLowerCase().includes("espera")) {
+        alert("The faucet can only be used once per hour.");
+      }
+      log(msg, false);
     }
 
     document.getElementById("amountIn").addEventListener("input", () => quote().catch(() => {}));
@@ -276,14 +297,14 @@
     };
     document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
     document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
-    document.getElementById("btnFaucet").onclick = () => pedirFaucet().catch((e) => log(e.message || e, false));
-    document.getElementById("btnFaucetMain").onclick = () => pedirFaucet().catch((e) => log(e.message || e, false));
+    document.getElementById("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
+    document.getElementById("btnFaucetMain").onclick = () => pedirFaucet().catch(avisoFaucet);
     document.getElementById("btnApprove").onclick = async () => {
       try {
         const { kit, spcx } = contracts();
-        log("Aprovando KIT...", true);
+        log("Approving KIT...", true);
         await (await kit.approve(AMM, ethers.MaxUint256)).wait();
-        log("Aprovando SPCX...", true);
+        log("Approving SPCX...", true);
         await (await spcx.approve(AMM, ethers.MaxUint256)).wait();
         log("Approve ok", true);
       } catch (e) { log(e.message || e, false); }
@@ -293,10 +314,10 @@
         const { amm } = contracts();
         const a = ethers.parseEther(document.getElementById("liqA").value);
         const b = ethers.parseEther(document.getElementById("liqB").value);
-        log("Enviando liquidez...", true);
+        log("Adding liquidity...", true);
         await (await amm.addLiquidity(a, b)).wait();
         await refresh();
-        log("Liquidez adicionada", true);
+        log("Liquidity added", true);
       } catch (e) { log(e.message || e, false); }
     };
     document.getElementById("btnSwap").onclick = async () => {
@@ -307,7 +328,7 @@
         const out = await quote();
         const minOut = out * 99n / 100n;
         const tokenIn = kitToSpcx ? KIT : SPCX;
-        log("Enviando swap...", true);
+        log("Sending swap...", true);
         await (await amm.swap(tokenIn, amountIn, minOut)).wait();
         await refresh();
         log("Swap ok", true);
