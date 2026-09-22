@@ -2,68 +2,129 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>KIT / SPCX Mini DEX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ElyDex · KIT / SPCX</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 420px; margin: 40px auto; background: #0f1115; color: #eee; }
-    h2 { margin-bottom: 4px; }
-    p { color: #aaa; }
-    input, button, select { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; border-radius: 8px; border: 0; }
-    button { cursor: pointer; background: #4f8cff; color: #fff; font-weight: 600; }
-    button:hover { opacity: 0.9; }
-    .ok { color: #5ee29a; }
-    .err { color: #ff7b7b; white-space: pre-wrap; }
-    .box { background: #1a1d24; padding: 14px; margin: 12px 0; border-radius: 12px; }
+    :root {
+      --bg: #07080d;
+      --card: #12141c;
+      --line: #242833;
+      --text: #f3f5f8;
+      --muted: #9aa3b2;
+      --blue: #4f8cff;
+      --blue2: #7c5cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, sans-serif;
+      background:
+        radial-gradient(900px 400px at 10% -10%, #1a2a55 0%, transparent 50%),
+        radial-gradient(700px 300px at 100% 0%, #2a1850 0%, transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; }
+    .brand span { color: var(--blue); }
+    .chip {
+      font-size: 12px; color: #b9c4ff; background: #182038;
+      border: 1px solid #2c3a66; padding: 6px 10px; border-radius: 999px;
+    }
+    .hero { margin-bottom: 18px; }
+    .hero p { margin: 6px 0 0; color: var(--muted); }
+    .grid { display: grid; gap: 14px; }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .wide { grid-column: 1 / -1; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .card h3 { margin: 0 0 10px; font-size: 14px; color: #d5dbe6; }
+    .addr { font-size: 12px; color: #8ea0c8; word-break: break-all; margin: 8px 0 0; }
+    .balances { line-height: 1.55; color: #dce3ef; font-size: 14px; }
+    input, select, button {
+      width: 100%; padding: 11px 12px; margin: 6px 0;
+      border: 0; border-radius: 12px; font-size: 14px;
+    }
+    input, select { background: #0c0e14; color: var(--text); border: 1px solid var(--line); }
+    button { cursor: pointer; font-weight: 700; }
+    .primary {
+      background: linear-gradient(90deg, var(--blue), var(--blue2));
+      color: white;
+    }
+    .ghost { background: #1b2030; color: #d5def0; }
+    .ok { color: #5ee29a; margin-top: 10px; }
+    .err { color: #ff8b8b; margin-top: 10px; white-space: pre-wrap; }
+    #quote { color: #c9d4ff; min-height: 18px; font-size: 13px; }
   </style>
 </head>
 <body>
-  <h2>Mini DEX</h2>
-  <p>KIT / SPCX · Elysium Testnet (99801)</p>
-  <button id="btnConnect">Conectar carteira</button>
-  <div id="account"></div>
+  <div class="wrap">
+    <header>
+      <div class="brand">Ely<span>Dex</span></div>
+      <div class="chip">Elysium Testnet · 99801</div>
+    </header>
 
-  <div class="box">
-    <b>Saldos</b>
-    <div id="balances">Conecte a carteira</div>
-    <button id="btnRefresh">Atualizar saldos</button>
+    <div class="hero">
+      <h2 style="margin:0;font-size:28px;letter-spacing:-0.04em;">KIT / SPCX</h2>
+      <p>Mini DEX de teste. Sem valor real.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card wide">
+        <button id="btnConnect" class="primary">Conectar carteira</button>
+        <div id="account" class="addr"></div>
+      </div>
+
+      <div class="card">
+        <h3>Saldos</h3>
+        <div id="balances" class="balances">Conecte a carteira</div>
+        <button id="btnRefresh" class="ghost">Atualizar saldos</button>
+      </div>
+
+      <div class="card">
+        <h3>Faucet de teste</h3>
+        <p style="margin:0 0 8px;color:#9aa3b2;font-size:13px;">10 KIT + 10 SPCX, 1x por hora. Precisa de HYPE para o gas.</p>
+        <button id="btnFaucet" class="primary">Pedir tokens</button>
+      </div>
+
+      <div class="card">
+        <h3>1. Aprovar tokens</h3>
+        <button id="btnApprove" class="ghost">Aprovar KIT e SPCX para a AMM</button>
+      </div>
+
+      <div class="card">
+        <h3>2. Adicionar liquidez</h3>
+        <input id="liqA" placeholder="KIT (ex: 100)" />
+        <input id="liqB" placeholder="SPCX (ex: 100)" />
+        <button id="btnLiq" class="primary">Add liquidity</button>
+      </div>
+
+      <div class="card wide">
+        <h3>3. Swap</h3>
+        <select id="tokenIn">
+          <option value="A">KIT → SPCX</option>
+          <option value="B">SPCX → KIT</option>
+        </select>
+        <input id="amountIn" placeholder="Quantidade (ex: 10)" />
+        <button id="btnQuote" class="ghost">Ver quanto sai</button>
+        <button id="btnSwap" class="primary">Swap</button>
+        <div id="quote"></div>
+      </div>
+    </div>
+    <div id="log"></div>
   </div>
-
-  <div class="box">
-    <b>Faucet de teste</b>
-    <p>10 KIT + 10 SPCX, 1x por hora. Precisa de HYPE para o gas.</p>
-    <button id="btnFaucet">Pedir tokens</button>
-  </div>
-
-  <div class="box">
-    <b>1. Aprovar tokens</b>
-    <button id="btnApprove">Aprovar KIT e SPCX para a AMM</button>
-  </div>
-
-  <div class="box">
-    <b>2. Adicionar liquidez</b>
-    <input id="liqA" placeholder="KIT (ex: 100)" />
-    <input id="liqB" placeholder="SPCX (ex: 100)" />
-    <button id="btnLiq">Add liquidity</button>
-  </div>
-
-  <div class="box">
-    <b>3. Swap</b>
-    <select id="tokenIn">
-      <option value="A">KIT → SPCX</option>
-      <option value="B">SPCX → KIT</option>
-    </select>
-    <input id="amountIn" placeholder="Quantidade (ex: 10)" />
-    <button id="btnQuote">Ver quanto sai</button>
-    <button id="btnSwap">Swap</button>
-    <div id="quote"></div>
-  </div>
-
-  <div id="log"></div>
 
   <script>
     const CHAIN_ID = 99801;
     const RPC = "https://testnet-rpc.elysium.kinetiq.xyz";
-
     const KIT = "0xc8859BB6cfF436C5ae2B623364Ef1f024cc7FcB5";
     const SPCX = "0xbB23E11476c4E09E932EA0b826089427d7Bb4Ba8";
     const AMM = "0x67469B9aD6135473136014C42f79CB478D8aD2bc";
@@ -158,10 +219,8 @@
         alert(msg);
       }
     };
-
     document.getElementById("btnRefresh").onclick = () =>
       refresh().catch((e) => log(e.message || e, false));
-
     document.getElementById("btnFaucet").onclick = async () => {
       try {
         const { faucet } = contracts();
@@ -171,7 +230,6 @@
         log("Faucet ok: 10 KIT + 10 SPCX", true);
       } catch (e) { log(e.message || e, false); }
     };
-
     document.getElementById("btnApprove").onclick = async () => {
       try {
         const { kit, spcx } = contracts();
@@ -182,7 +240,6 @@
         log("Approve ok", true);
       } catch (e) { log(e.message || e, false); }
     };
-
     document.getElementById("btnLiq").onclick = async () => {
       try {
         const { amm } = contracts();
@@ -194,26 +251,19 @@
         log("Liquidez adicionada", true);
       } catch (e) { log(e.message || e, false); }
     };
-
     async function quote() {
       const { amm } = contracts();
       const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
       const ra = await amm.reserveA();
       const rb = await amm.reserveB();
       const kitToSpcx = document.getElementById("tokenIn").value === "A";
-      const out = await amm.getAmountOut(
-        amountIn,
-        kitToSpcx ? ra : rb,
-        kitToSpcx ? rb : ra
-      );
+      const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
       document.getElementById("quote").innerText =
         "Sai cerca de " + ethers.formatEther(out) + (kitToSpcx ? " SPCX" : " KIT");
       return out;
     }
-
     document.getElementById("btnQuote").onclick = () =>
       quote().catch((e) => log(e.message || e, false));
-
     document.getElementById("btnSwap").onclick = async () => {
       try {
         const { amm } = contracts();
