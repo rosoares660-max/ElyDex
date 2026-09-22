@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ElyDex</title>
+  <link rel="icon" href="ely.jpg" type="image/jpeg" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
     :root { --green:#c8ff3d; --card:#17181c; --line:#2a2c31; --text:#f4f4f5; --muted:#8b8f98; }
@@ -21,6 +22,11 @@
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 18px 22px;
+    }
+    .left { display: flex; align-items: center; gap: 10px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      object-fit: cover; border: 1px solid #3a3d45;
     }
     .nav { display: flex; gap: 6px; background: #16171b; padding: 6px; border-radius: 999px; border: 1px solid var(--line); }
     .nav button {
@@ -84,10 +90,13 @@
 </head>
 <body>
   <header>
-    <div class="nav">
-      <button class="on" id="tabSwap">Swap</button>
-      <button id="tabLiq">Liquidity</button>
-      <button id="tabFaucet">Faucet</button>
+    <div class="left">
+      <img class="logo" src="ely.jpg" alt="ElyDex" />
+      <div class="nav">
+        <button class="on" id="tabSwap">Swap</button>
+        <button id="tabLiq">Liquidity</button>
+        <button id="tabFaucet">Faucet</button>
+      </div>
     </div>
     <div class="right">
       <button class="connect-sm" id="btnConnect">Connect</button>
