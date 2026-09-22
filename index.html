@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>KIT / SPCX Mini DEX</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 420px; margin: 40px auto; background: #0f1115; color: #eee; }
+    h2 { margin-bottom: 4px; }
+    p { color: #aaa; }
+    input, button, select { width: 100%; padding: 10px; margin: 6px 0; box-sizing: border-box; border-radius: 8px; border: 0; }
+    button { cursor: pointer; background: #4f8cff; color: #fff; font-weight: 600; }
+    button:hover { opacity: 0.9; }
+    .ok { color: #5ee29a; }
+    .err { color: #ff7b7b; white-space: pre-wrap; }
+    .box { background: #1a1d24; padding: 14px; margin: 12px 0; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <h2>Mini DEX</h2>
+  <p>KIT / SPCX · Elysium Testnet (99801)</p>
+  <button id="btnConnect">Conectar carteira</button>
+  <div id="account"></div>
+
+  <div class="box">
+    <b>Saldos</b>
+    <div id="balances">Conecte a carteira</div>
+    <button id="btnRefresh">Atualizar saldos</button>
+  </div>
+
+  <div class="box">
+    <b>1. Aprovar tokens</b>
+    <button id="btnApprove">Aprovar KIT e SPCX para a AMM</button>
+  </div>
+
+  <div class="box">
+    <b>2. Adicionar liquidez</b>
+    <input id="liqA" placeholder="KIT (ex: 100)" />
+    <input id="liqB" placeholder="SPCX (ex: 100)" />
+    <button id="btnLiq">Add liquidity</button>
+  </div>
+
+  <div class="box">
+    <b>3. Swap</b>
+    <select id="tokenIn">
+      <option value="A">KIT → SPCX</option>
+      <option value="B">SPCX → KIT</option>
+    </select>
+    <input id="amountIn" placeholder="Quantidade (ex: 10)" />
