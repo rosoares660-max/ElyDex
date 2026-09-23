@@ -36,11 +36,18 @@
     }
     .connect-sm { background: #fff; color: #111; }
     .check-sm { background: #2a2414; color: var(--gold); border: 1px solid #4a3b16; }
+    .connect-sm:disabled, .check-sm:disabled, .go:disabled, .flip:disabled {
+      opacity: .55; cursor: not-allowed;
+    }
     main { display: flex; justify-content: center; padding: 40px 16px 80px; }
     .panel { width: 100%; max-width: 430px; }
     .swap-card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 12px; }
     .leg { background: #101114; border: 1px solid var(--line); border-radius: 20px; padding: 14px; margin: 8px 0; }
     .leg-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+    .bal-btn {
+      background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; padding: 0;
+    }
+    .bal-btn:hover { color: #fff; }
     .leg-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
     .token { display: flex; align-items: center; gap: 8px; background: #1d1f24; border: 1px solid #32343a; padding: 8px 10px; border-radius: 999px; font-weight: 800; }
     .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #111; font-weight: 900; }
@@ -49,7 +56,25 @@
     .amt { width: 150px; background: transparent; border: 0; color: #fff; font-size: 28px; text-align: right; outline: none; }
     .flip-wrap { display: flex; justify-content: center; margin: -6px 0; position: relative; z-index: 2; }
     .flip { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #1b1c20; color: #fff; cursor: pointer; font-size: 16px; }
+    .meta {
+      display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+      color: var(--muted); font-size: 12px; padding: 6px 6px 2px;
+    }
+    .slip {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 8px 6px 4px; color: var(--muted); font-size: 12px;
+    }
+    .slip button {
+      border: 1px solid var(--line); background: #121318; color: #c7c9ce;
+      border-radius: 999px; padding: 4px 8px; cursor: pointer; font-weight: 700; font-size: 12px;
+    }
+    .slip button.on { background: #2a2c31; color: #fff; border-color: #3d4048; }
+    .slip input {
+      width: 56px; background: #0f1013; border: 1px solid var(--line); color: #fff;
+      border-radius: 8px; padding: 4px 6px; font-size: 12px;
+    }
     .go { width: 100%; margin-top: 10px; background: var(--green); color: #111; border: 0; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 900; letter-spacing: .04em; cursor: pointer; }
+    .go.secondary { background: #fff; }
     .hidden { display: none; }
     .ok { color: #b9ff7a; margin-top: 12px; }
     .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
@@ -71,6 +96,12 @@
       opacity: 0; pointer-events: none; transform: translateY(4px);
     }
     .soc:hover::after, .soc:focus::after { opacity: 1; transform: none; }
+    .spin {
+      width: 14px; height: 14px; border: 2px solid rgba(0,0,0,.2);
+      border-top-color: #111; border-radius: 50%; display: inline-block;
+      animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -89,46 +120,58 @@
       <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
   </header>
-
   <main>
     <div class="panel">
       <div id="viewSwap">
         <div class="swap-card">
           <div class="leg">
-            <div class="leg-top"><span>Sell</span><span id="balSell">0</span></div>
+            <div class="leg-top">
+              <span>Sell</span>
+              <button class="bal-btn" id="balSellBtn" type="button">Balance: <span id="balSell">0</span></button>
+            </div>
             <div class="leg-row">
-              <div class="token"><div class="dot kit">K</div> <span id="sellSym">KIT</span></div>
-              <input class="amt" id="amountIn" placeholder="0" />
+              <div class="token"><div class="dot kit" id="sellDot">K</div> <span id="sellSym">KIT</span></div>
+              <input class="amt" id="amountIn" placeholder="0" inputmode="decimal" />
             </div>
           </div>
           <div class="flip-wrap"><button class="flip" id="btnFlip">↓</button></div>
           <div class="leg">
-            <div class="leg-top"><span>Buy</span><span id="balBuy">0</span></div>
+            <div class="leg-top">
+              <span>Buy</span>
+              <span>Balance: <span id="balBuy">0</span></span>
+            </div>
             <div class="leg-row">
-              <div class="token"><div class="dot spcx">S</div> <span id="buySym">SPCX</span></div>
+              <div class="token"><div class="dot spcx" id="buyDot">S</div> <span id="buySym">SPCX</span></div>
               <input class="amt" id="amountOut" placeholder="0" readonly />
             </div>
           </div>
+          <div class="meta">
+            <span id="minOutLabel">Min. received: —</span>
+            <span id="poolLabel">Pool: —</span>
+          </div>
+          <div class="slip">
+            <span>Slippage</span>
+            <button type="button" data-slip="0.5">0.5%</button>
+            <button type="button" class="on" data-slip="1">1%</button>
+            <button type="button" data-slip="2">2%</button>
+            <input id="slipCustom" placeholder="%" inputmode="decimal" />
+          </div>
           <button class="go" id="btnSwap">CONNECT WALLET</button>
-          <button class="go" id="btnFaucetMain">FAUCET</button>
         </div>
         <span id="poolKit" class="hidden"></span>
         <span id="poolSpcx" class="hidden"></span>
       </div>
-
       <div id="viewLiq" class="swap-card hidden">
-        <p class="sub">Deposit both tokens into the pool.</p>
-        <input class="plain" id="liqA" placeholder="KIT (e.g. 100)" />
-        <input class="plain" id="liqB" placeholder="SPCX (e.g. 100)" />
+        <p class="sub">Deposit both tokens into the pool. Approve once, then add liquidity.</p>
+        <input class="plain" id="liqA" placeholder="KIT amount (e.g. 100)" inputmode="decimal" />
+        <input class="plain" id="liqB" placeholder="SPCX amount (e.g. 100)" inputmode="decimal" />
         <button class="go" id="btnApprove">APPROVE TOKENS</button>
-        <button class="go" id="btnLiq" style="margin-top:8px;background:#fff;">ADD LIQUIDITY</button>
+        <button class="go secondary" id="btnLiq" style="margin-top:8px;">ADD LIQUIDITY</button>
       </div>
-
       <div id="viewFaucet" class="swap-card hidden">
-        <p class="sub">10 KIT + 10 SPCX, once per hour. You need HYPE for gas.</p>
+        <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
         <button class="go" id="btnFaucet">CLAIM TOKENS</button>
       </div>
-
       <div id="account" class="sub" style="margin-top:12px;"></div>
       <div id="log"></div>
       <button id="btnRefresh" class="hidden">Refresh</button>
@@ -136,7 +179,6 @@
       <select id="tokenIn" class="hidden"><option value="A" selected>A</option><option value="B">B</option></select>
     </div>
   </main>
-
   <div class="socials">
     <button class="soc" id="btnDiscord" type="button" title="Soon" aria-label="Discord">
       <svg viewBox="0 0 24 24"><path d="M20 5.6A16 16 0 0 0 15.6 4l-.4.7a13 13 0 0 1 3.3 1.5 14 14 0 0 0-11 0A13 13 0 0 1 8.8 4.7L8.4 4A16 16 0 0 0 4 5.6C1.8 9.3 1.2 13 1.4 16.6A16 16 0 0 0 6.4 19l.7-1.2a10 10 0 0 1-1.6-.8l.4-.3a11 11 0 0 0 12.2 0l.4.3a10 10 0 0 1-1.6.8l.7 1.2a16 16 0 0 0 5-2.4c.4-4.2-.4-7.8-2.6-11zM8.7 14.6c-.8 0-1.5-.8-1.5-1.7s.7-1.7 1.5-1.7 1.5.8 1.5 1.7-.7 1.7-1.5 1.7zm6.6 0c-.8 0-1.5-.8-1.5-1.7s.7-1.7 1.5-1.7 1.5.8 1.5 1.7-.7 1.7-1.5 1.7z"/></svg>
@@ -145,7 +187,6 @@
       <svg viewBox="0 0 24 24"><path d="M18.9 2H22l-6.8 7.8L23.3 22h-6.6l-5.2-6.8L5.7 22H2.5l7.3-8.3L.8 2h6.7l4.7 6.2L18.9 2zm-1.2 18h1.8L6.4 3.9H4.5L17.7 20z"/></svg>
     </button>
   </div>
-
   <script>
     const CHAIN_ID = 99801;
     const RPC = "https://testnet-rpc.elysium.kinetiq.xyz";
@@ -154,7 +195,6 @@
     const AMM = "0x67469B9aD6135473136014C42f79CB478D8aD2bc";
     const FAUCET = "0x5D05dEf10B7d5365CA8ede46Ff35E5a4046A9013";
     const POINTS = "0xA427d47B434e562fCd864725594CCe0796Ecfe20";
-
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
       "function balanceOf(address) view returns (uint256)"
@@ -178,40 +218,116 @@
       "function checkIn()",
       "function awardSwap()"
     ];
+    let provider, signer, addr, kitToSpcx = true, busy = false;
+    let balKit = 0n, balSpcx = 0n, lastOut = 0n, slipPct = 1;
 
-    let provider, signer, addr, kitToSpcx = true;
+    const $ = (id) => document.getElementById(id);
+
+    function setBusy(on, btn, label) {
+      busy = on;
+      ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn","btnConnect","btnFlip"].forEach((id) => {
+        const el = $(id);
+        if (el) el.disabled = on;
+      });
+      if (btn && label) {
+        btn.dataset.prev = btn.dataset.prev || btn.innerHTML;
+        btn.innerHTML = on ? `<span class="spin"></span>${label}` : (btn.dataset.prev || label);
+        if (!on) btn.dataset.prev = "";
+      } else if (!on) {
+        ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn"].forEach((id) => {
+          const el = $(id);
+          if (el && el.dataset.prev) { el.innerHTML = el.dataset.prev; el.dataset.prev = ""; }
+        });
+        updateSwapLabel();
+      }
+    }
+
+    function friendlyError(e) {
+      const raw = String(e?.shortMessage || e?.reason || e?.message || e);
+      const s = raw.toLowerCase();
+      if (s.includes("user rejected") || s.includes("denied") || s.includes("rejected the request")) return "Transaction cancelled in the wallet.";
+      if (s.includes("insufficient funds")) return "Not enough HYPE for gas.";
+      if (s.includes("transfer amount exceeds") || s.includes("insufficient")) return "Insufficient token balance.";
+      if (s.includes("cooldown") || s.includes("espera")) return "Still in cooldown. Try again later.";
+      if (s.includes("checked in")) return "Check-in is only available once per day.";
+      if (s.includes("install metamask")) return "Install MetaMask in your browser.";
+      const cut = raw.split("(")[0].trim();
+      return cut.slice(0, 180) || "Something went wrong.";
+    }
 
     function log(msg, ok) {
-      document.getElementById("log").innerHTML =
-        `<div class="${ok ? "ok" : "err"}">${msg}</div>`;
+      $("log").innerHTML = `<div class="${ok ? "ok" : "err"}">${msg}</div>`;
     }
+
     function show(id) {
       ["viewSwap","viewLiq","viewFaucet"].forEach((v) =>
-        document.getElementById(v).classList.toggle("hidden", v !== id)
+        $(v).classList.toggle("hidden", v !== id)
       );
-      document.getElementById("tabSwap").classList.toggle("on", id === "viewSwap");
-      document.getElementById("tabLiq").classList.toggle("on", id === "viewLiq");
-      document.getElementById("tabFaucet").classList.toggle("on", id === "viewFaucet");
+      $("tabSwap").classList.toggle("on", id === "viewSwap");
+      $("tabLiq").classList.toggle("on", id === "viewLiq");
+      $("tabFaucet").classList.toggle("on", id === "viewFaucet");
     }
-    document.getElementById("tabSwap").onclick = () => show("viewSwap");
-    document.getElementById("tabLiq").onclick = () => show("viewLiq");
-    document.getElementById("tabFaucet").onclick = () => show("viewFaucet");
 
+    $("tabSwap").onclick = () => show("viewSwap");
+    $("tabLiq").onclick = () => show("viewLiq");
+    $("tabFaucet").onclick = () => show("viewFaucet");
     function soon() { alert("Soon"); }
-    document.getElementById("btnDiscord").onclick = soon;
-    document.getElementById("btnTwitter").onclick = soon;
+    $("btnDiscord").onclick = soon;
+    $("btnTwitter").onclick = soon;
 
     function syncDir() {
-      document.getElementById("tokenIn").value = kitToSpcx ? "A" : "B";
-      document.getElementById("sellSym").innerText = kitToSpcx ? "KIT" : "SPCX";
-      document.getElementById("buySym").innerText = kitToSpcx ? "SPCX" : "KIT";
+      $("tokenIn").value = kitToSpcx ? "A" : "B";
+      $("sellSym").innerText = kitToSpcx ? "KIT" : "SPCX";
+      $("buySym").innerText = kitToSpcx ? "SPCX" : "KIT";
+      $("sellDot").innerText = kitToSpcx ? "K" : "S";
+      $("buyDot").innerText = kitToSpcx ? "S" : "K";
+      $("sellDot").className = "dot " + (kitToSpcx ? "kit" : "spcx");
+      $("buyDot").className = "dot " + (kitToSpcx ? "spcx" : "kit");
+      $("balSell").innerText = short(kitToSpcx ? balKit : balSpcx);
+      $("balBuy").innerText = short(kitToSpcx ? balSpcx : balKit);
     }
-    document.getElementById("btnFlip").onclick = () => {
+
+    $("btnFlip").onclick = () => {
+      if (busy) return;
       kitToSpcx = !kitToSpcx;
+      const a = $("amountIn").value;
+      $("amountIn").value = $("amountOut").value || "";
+      $("amountOut").value = a || "";
       syncDir();
-      document.getElementById("amountOut").value = "";
       quote().catch(() => {});
     };
+
+    function getSlipBps() {
+      const custom = parseFloat($("slipCustom").value);
+      const pct = Number.isFinite(custom) && custom >= 0 ? custom : slipPct;
+      return Math.min(5000, Math.max(1, Math.round(pct * 100)));
+    }
+
+    document.querySelectorAll(".slip button[data-slip]").forEach((btn) => {
+      btn.onclick = () => {
+        slipPct = parseFloat(btn.dataset.slip);
+        $("slipCustom").value = "";
+        document.querySelectorAll(".slip button[data-slip]").forEach((b) => b.classList.toggle("on", b === btn));
+        updateMinOut();
+      };
+    });
+    $("slipCustom").addEventListener("input", () => {
+      document.querySelectorAll(".slip button[data-slip]").forEach((b) => b.classList.remove("on"));
+      updateMinOut();
+    });
+
+    function updateMinOut() {
+      if (!lastOut) { $("minOutLabel").innerText = "Min. received: —"; return; }
+      const minOut = lastOut * BigInt(10000 - getSlipBps()) / 10000n;
+      $("minOutLabel").innerText = "Min. received: " + short(minOut);
+    }
+
+    function updateSwapLabel() {
+      if (!signer) { $("btnSwap").innerText = "CONNECT WALLET"; return; }
+      const v = $("amountIn").value.trim();
+      if (!v || Number(v) <= 0) { $("btnSwap").innerText = "ENTER AMOUNT"; return; }
+      $("btnSwap").innerText = "SWAP";
+    }
 
     async function ensureChain() {
       const hex = "0x" + CHAIN_ID.toString(16);
@@ -235,16 +351,23 @@
 
     async function connect() {
       if (!window.ethereum) throw new Error("Install MetaMask in Chrome");
-      await ensureChain();
-      provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = await provider.getSigner();
-      addr = await signer.getAddress();
-      document.getElementById("account").innerText = addr;
-      document.getElementById("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
-      document.getElementById("btnSwap").innerText = "SWAP";
-      await refresh();
-      log("Wallet connected", true);
+      setBusy(true, $("btnConnect"), "Connecting...");
+      try {
+        await ensureChain();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        addr = await signer.getAddress();
+        $("account").innerText = addr;
+        $("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
+        $("btnConnect").dataset.prev = $("btnConnect").innerText;
+        updateSwapLabel();
+        await refresh();
+        log("Wallet connected", true);
+      } finally {
+        setBusy(false, $("btnConnect"));
+        $("btnConnect").innerText = addr ? addr.slice(0,6) + "..." + addr.slice(-4) : "Connect";
+      }
     }
 
     function contracts() {
@@ -263,27 +386,45 @@
     }
 
     async function refresh() {
+      if (!signer) return;
       const { kit, spcx, amm, pts } = contracts();
       const [a, b, ra, rb, p] = await Promise.all([
         kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB(), pts.points(addr)
       ]);
-      document.getElementById("balSell").innerText = kitToSpcx ? short(a) : short(b);
-      document.getElementById("balBuy").innerText = kitToSpcx ? short(b) : short(a);
-      document.getElementById("poolKit").innerText = "Pool " + short(ra);
-      document.getElementById("poolSpcx").innerText = "Pool " + short(rb);
-      document.getElementById("ptsLabel").innerText = p.toString();
+      balKit = a; balSpcx = b;
+      $("balSell").innerText = kitToSpcx ? short(a) : short(b);
+      $("balBuy").innerText = kitToSpcx ? short(b) : short(a);
+      $("poolKit").innerText = "Pool " + short(ra);
+      $("poolSpcx").innerText = "Pool " + short(rb);
+      $("poolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
+      $("ptsLabel").innerText = p.toString();
     }
 
     async function quote() {
-      if (!signer || !document.getElementById("amountIn").value) return 0n;
+      updateSwapLabel();
+      if (!signer || !$("amountIn").value) {
+        lastOut = 0n;
+        $("amountOut").value = "";
+        updateMinOut();
+        return 0n;
+      }
       const { amm } = contracts();
-      const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
+      const amountIn = ethers.parseEther($("amountIn").value);
       const ra = await amm.reserveA();
       const rb = await amm.reserveB();
       const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
-      document.getElementById("amountOut").value = ethers.formatEther(out);
+      lastOut = out;
+      $("amountOut").value = ethers.formatEther(out);
+      updateMinOut();
       return out;
     }
+
+    $("balSellBtn").onclick = () => {
+      const bal = kitToSpcx ? balKit : balSpcx;
+      if (bal === 0n) return;
+      $("amountIn").value = ethers.formatEther(bal);
+      quote().catch(() => {});
+    };
 
     async function pedirFaucet() {
       if (!signer) { await connect(); }
@@ -292,22 +433,31 @@
       const cd = await faucet.cooldown();
       const agora = BigInt(Math.floor(Date.now() / 1000));
       if (last > 0n && agora < last + cd) {
-        alert("The faucet can only be used once per hour.");
-        log("Faucet: wait 1 hour before claiming again", false);
+        const left = Number(last + cd - agora);
+        const m = Math.ceil(left / 60);
+        alert("Faucet available again in about " + m + " min.");
+        log("Faucet cooldown: wait ~" + m + " min", false);
         return;
       }
-      log("Claiming tokens...", true);
-      await (await faucet.claim()).wait();
-      await refresh();
-      log("Faucet ok: 10 KIT + 10 SPCX", true);
+      setBusy(true, $("btnFaucet"), "Confirm in wallet...");
+      try {
+        log("Claiming tokens...", true);
+        const tx = await faucet.claim();
+        $("btnFaucet").innerHTML = `<span class="spin"></span>Waiting for tx...`;
+        await tx.wait();
+        await refresh();
+        log("Faucet ok: 10 KIT + 10 SPCX", true);
+      } finally {
+        setBusy(false, $("btnFaucet"), "CLAIM TOKENS");
+        $("btnFaucet").innerText = "CLAIM TOKENS";
+      }
     }
 
     function avisoFaucet(e) {
-      const msg = String(e.message || e);
-      if (msg.toLowerCase().includes("cooldown") || msg.toLowerCase().includes("espera")) {
-        alert("The faucet can only be used once per hour.");
-      }
+      const msg = friendlyError(e);
+      if (msg.toLowerCase().includes("cooldown")) alert("The faucet can only be used once per hour.");
       log(msg, false);
+      setBusy(false);
     }
 
     async function doCheckIn() {
@@ -321,63 +471,114 @@
         log("Already checked in today", false);
         return;
       }
-      log("Checking in...", true);
-      await (await pts.checkIn()).wait();
-      await refresh();
-      log("Check-in ok: +50 points", true);
+      setBusy(true, $("btnCheckIn"), "Checking in...");
+      try {
+        log("Checking in...", true);
+        const tx = await pts.checkIn();
+        $("btnCheckIn").innerHTML = `<span class="spin"></span>...`;
+        await tx.wait();
+        await refresh();
+        log("Check-in ok: +50 points", true);
+      } finally {
+        setBusy(false, $("btnCheckIn"), "Check-in");
+        $("btnCheckIn").innerText = "Check-in";
+      }
     }
 
-    document.getElementById("amountIn").addEventListener("input", () => quote().catch(() => {}));
-    document.getElementById("btnConnect").onclick = async () => {
-      try { await connect(); } catch (e) { const m = e.message || e; log(m, false); alert(m); }
+    $("amountIn").addEventListener("input", () => quote().catch(() => {}));
+    $("btnConnect").onclick = async () => {
+      try { await connect(); } catch (e) { const m = friendlyError(e); log(m, false); alert(m); setBusy(false); }
     };
-    document.getElementById("btnCheckIn").onclick = () =>
+    $("btnCheckIn").onclick = () =>
       doCheckIn().catch((e) => {
-        const msg = String(e.message || e);
-        if (msg.toLowerCase().includes("checked in")) alert("Check-in is only available once per day.");
+        const msg = friendlyError(e);
+        if (msg.toLowerCase().includes("once per day") || msg.toLowerCase().includes("checked in")) {
+          alert("Check-in is only available once per day.");
+        }
         log(msg, false);
+        setBusy(false);
+        $("btnCheckIn").innerText = "Check-in";
       });
-    document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
-    document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
-    document.getElementById("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
-    document.getElementById("btnFaucetMain").onclick = () => pedirFaucet().catch(avisoFaucet);
-    document.getElementById("btnApprove").onclick = async () => {
+    $("btnRefresh").onclick = () => refresh().catch((e) => log(friendlyError(e), false));
+    $("btnQuote").onclick = () => quote().catch((e) => log(friendlyError(e), false));
+    $("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
+
+    $("btnApprove").onclick = async () => {
       try {
+        if (!signer) await connect();
         const { kit, spcx } = contracts();
+        setBusy(true, $("btnApprove"), "Approving KIT...");
         log("Approving KIT...", true);
         await (await kit.approve(AMM, ethers.MaxUint256)).wait();
+        $("btnApprove").innerHTML = `<span class="spin"></span>Approving SPCX...`;
         log("Approving SPCX...", true);
         await (await spcx.approve(AMM, ethers.MaxUint256)).wait();
-        log("Approve ok", true);
-      } catch (e) { log(e.message || e, false); }
+        log("Tokens approved. You can add liquidity now.", true);
+      } catch (e) { log(friendlyError(e), false); }
+      finally {
+        setBusy(false, $("btnApprove"), "APPROVE TOKENS");
+        $("btnApprove").innerText = "APPROVE TOKENS";
+      }
     };
-    document.getElementById("btnLiq").onclick = async () => {
+
+    $("btnLiq").onclick = async () => {
       try {
+        if (!signer) await connect();
         const { amm } = contracts();
-        const a = ethers.parseEther(document.getElementById("liqA").value);
-        const b = ethers.parseEther(document.getElementById("liqB").value);
+        const a = ethers.parseEther($("liqA").value || "0");
+        const b = ethers.parseEther($("liqB").value || "0");
+        if (a <= 0n || b <= 0n) { log("Enter both KIT and SPCX amounts.", false); return; }
+        setBusy(true, $("btnLiq"), "Confirm in wallet...");
         log("Adding liquidity...", true);
-        await (await amm.addLiquidity(a, b)).wait();
+        const tx = await amm.addLiquidity(a, b);
+        $("btnLiq").innerHTML = `<span class="spin"></span>Waiting for tx...`;
+        await tx.wait();
         await refresh();
         log("Liquidity added", true);
-      } catch (e) { log(e.message || e, false); }
+      } catch (e) { log(friendlyError(e), false); }
+      finally {
+        setBusy(false, $("btnLiq"), "ADD LIQUIDITY");
+        $("btnLiq").innerText = "ADD LIQUIDITY";
+      }
     };
-    document.getElementById("btnSwap").onclick = async () => {
+
+    $("btnSwap").onclick = async () => {
       try {
         if (!signer) { await connect(); return; }
+        const raw = $("amountIn").value.trim();
+        if (!raw || Number(raw) <= 0) { log("Enter an amount to swap.", false); return; }
+        const amountIn = ethers.parseEther(raw);
+        const bal = kitToSpcx ? balKit : balSpcx;
+        if (amountIn > bal) { log("Amount is bigger than your balance.", false); return; }
         const { amm, pts } = contracts();
-        const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
         const out = await quote();
-        const minOut = out * 99n / 100n;
+        const minOut = out * BigInt(10000 - getSlipBps()) / 10000n;
         const tokenIn = kitToSpcx ? KIT : SPCX;
-        log("Sending swap...", true);
-        await (await amm.swap(tokenIn, amountIn, minOut)).wait();
-        log("Swap ok. Confirm +100 points in MetaMask...", true);
+        setBusy(true, $("btnSwap"), "Confirm swap...");
+        log("Confirm the swap in MetaMask...", true);
+        const tx = await amm.swap(tokenIn, amountIn, minOut);
+        $("btnSwap").innerHTML = `<span class="spin"></span>Swapping...`;
+        await tx.wait();
+        log("Swap confirmed. Confirm +100 points...", true);
+        $("btnSwap").innerHTML = `<span class="spin"></span>Awarding points...`;
         await (await pts.awardSwap()).wait();
         await refresh();
+        $("amountIn").value = "";
+        $("amountOut").value = "";
+        lastOut = 0n;
+        updateMinOut();
         log("Swap ok: +100 points", true);
-      } catch (e) { log(e.message || e, false); }
+      } catch (e) { log(friendlyError(e), false); }
+      finally {
+        setBusy(false);
+        updateSwapLabel();
+      }
     };
+
+    if (window.ethereum) {
+      window.ethereum.on?.("accountsChanged", () => location.reload());
+      window.ethereum.on?.("chainChanged", () => location.reload());
+    }
   </script>
 </body>
 </html>
