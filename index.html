@@ -7,7 +7,7 @@
   <link rel="icon" href="ely.jpg" type="image/jpeg" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
-    :root { --green:#c8ff3d; --card:#17181c; --line:#2a2c31; --text:#f4f4f5; --muted:#8b8f98; }
+    :root { --green:#c8ff3d; --card:#17181c; --line:#2a2c31; --text:#f4f4f5; --muted:#8b8f98; --gold:#e0b43a; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -19,73 +19,42 @@
         #0b0c0e;
       min-height: 100vh;
     }
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 18px 22px;
-    }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; gap: 10px; flex-wrap: wrap; }
     .left { display: flex; align-items: center; gap: 10px; }
-    .logo {
-      width: 36px; height: 36px; border-radius: 10px;
-      object-fit: cover; border: 1px solid #3a3d45;
-    }
+    .logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; border: 1px solid #3a3d45; }
     .nav { display: flex; gap: 6px; background: #16171b; padding: 6px; border-radius: 999px; border: 1px solid var(--line); }
-    .nav button {
-      background: transparent; color: #c7c9ce; border: 0; padding: 8px 14px;
-      border-radius: 999px; cursor: pointer; font-weight: 700;
-    }
+    .nav button { background: transparent; color: #c7c9ce; border: 0; padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 700; }
     .nav button.on { background: #2a2c31; color: #fff; }
-    .right { display: flex; gap: 8px; align-items: center; }
-    .connect-sm {
-      background: #fff; color: #111; border: 0; border-radius: 999px;
-      padding: 8px 14px; font-weight: 800; cursor: pointer;
+    .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .chip {
+      display: flex; align-items: center; gap: 6px;
+      background: #1a160c; border: 1px solid #4a3b16; color: var(--gold);
+      border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 14px;
     }
+    .connect-sm, .check-sm {
+      border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 800; cursor: pointer;
+    }
+    .connect-sm { background: #fff; color: #111; }
+    .check-sm { background: #2a2414; color: var(--gold); border: 1px solid #4a3b16; }
     main { display: flex; justify-content: center; padding: 40px 16px 80px; }
     .panel { width: 100%; max-width: 430px; }
-    .swap-card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 12px;
-    }
-    .leg {
-      background: #101114;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 14px;
-      margin: 8px 0;
-    }
+    .swap-card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 12px; }
+    .leg { background: #101114; border: 1px solid var(--line); border-radius: 20px; padding: 14px; margin: 8px 0; }
     .leg-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
     .leg-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
-    .token {
-      display: flex; align-items: center; gap: 8px;
-      background: #1d1f24; border: 1px solid #32343a;
-      padding: 8px 10px; border-radius: 999px; font-weight: 800;
-    }
+    .token { display: flex; align-items: center; gap: 8px; background: #1d1f24; border: 1px solid #32343a; padding: 8px 10px; border-radius: 999px; font-weight: 800; }
     .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #111; font-weight: 900; }
     .kit { background: #7aa2ff; }
     .spcx { background: var(--green); }
-    .amt {
-      width: 150px; background: transparent; border: 0; color: #fff;
-      font-size: 28px; text-align: right; outline: none;
-    }
+    .amt { width: 150px; background: transparent; border: 0; color: #fff; font-size: 28px; text-align: right; outline: none; }
     .flip-wrap { display: flex; justify-content: center; margin: -6px 0; position: relative; z-index: 2; }
-    .flip {
-      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line);
-      background: #1b1c20; color: #fff; cursor: pointer; font-size: 16px;
-    }
-    .go {
-      width: 100%; margin-top: 10px; background: var(--green); color: #111;
-      border: 0; border-radius: 16px; padding: 16px; font-size: 16px;
-      font-weight: 900; letter-spacing: .04em; cursor: pointer;
-    }
+    .flip { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #1b1c20; color: #fff; cursor: pointer; font-size: 16px; }
+    .go { width: 100%; margin-top: 10px; background: var(--green); color: #111; border: 0; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 900; letter-spacing: .04em; cursor: pointer; }
     .hidden { display: none; }
     .ok { color: #b9ff7a; margin-top: 12px; }
     .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
     .sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
-    input.plain, select.plain {
-      width: 100%; padding: 11px; margin: 6px 0; border-radius: 12px;
-      border: 1px solid var(--line); background: #0f1013; color: #fff;
-    }
+    input.plain, select.plain { width: 100%; padding: 11px; margin: 6px 0; border-radius: 12px; border: 1px solid var(--line); background: #0f1013; color: #fff; }
   </style>
 </head>
 <body>
@@ -99,6 +68,8 @@
       </div>
     </div>
     <div class="right">
+      <div class="chip">● <span id="ptsLabel">0</span></div>
+      <button class="check-sm" id="btnCheckIn">Check-in</button>
       <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
   </header>
@@ -157,6 +128,7 @@
     const SPCX = "0xbB23E11476c4E09E932EA0b826089427d7Bb4Ba8";
     const AMM = "0x67469B9aD6135473136014C42f79CB478D8aD2bc";
     const FAUCET = "0x5D05dEf10B7d5365CA8ede46Ff35E5a4046A9013";
+    const POINTS = "0xA427d47B434e562fCd864725594CCe0796Ecfe20";
 
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
@@ -173,6 +145,13 @@
       "function claim()",
       "function lastClaim(address) view returns (uint256)",
       "function cooldown() view returns (uint256)"
+    ];
+    const pointsAbi = [
+      "function points(address) view returns (uint256)",
+      "function lastCheckIn(address) view returns (uint256)",
+      "function checkInCooldown() view returns (uint256)",
+      "function checkIn()",
+      "function awardSwap()"
     ];
 
     let provider, signer, addr, kitToSpcx = true;
@@ -244,7 +223,8 @@
         kit: new ethers.Contract(KIT, tokenAbi, signer),
         spcx: new ethers.Contract(SPCX, tokenAbi, signer),
         amm: new ethers.Contract(AMM, ammAbi, signer),
-        faucet: new ethers.Contract(FAUCET, faucetAbi, signer)
+        faucet: new ethers.Contract(FAUCET, faucetAbi, signer),
+        pts: new ethers.Contract(POINTS, pointsAbi, signer)
       };
     }
 
@@ -254,14 +234,15 @@
     }
 
     async function refresh() {
-      const { kit, spcx, amm } = contracts();
-      const [a, b, ra, rb] = await Promise.all([
-        kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB()
+      const { kit, spcx, amm, pts } = contracts();
+      const [a, b, ra, rb, p] = await Promise.all([
+        kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB(), pts.points(addr)
       ]);
       document.getElementById("balSell").innerText = kitToSpcx ? short(a) : short(b);
       document.getElementById("balBuy").innerText = kitToSpcx ? short(b) : short(a);
       document.getElementById("poolKit").innerText = "Pool " + short(ra);
       document.getElementById("poolSpcx").innerText = "Pool " + short(rb);
+      document.getElementById("ptsLabel").innerText = p.toString();
     }
 
     async function quote() {
@@ -300,10 +281,33 @@
       log(msg, false);
     }
 
+    async function doCheckIn() {
+      if (!signer) { await connect(); }
+      const { pts } = contracts();
+      const last = await pts.lastCheckIn(addr);
+      const cd = await pts.checkInCooldown();
+      const agora = BigInt(Math.floor(Date.now() / 1000));
+      if (last > 0n && agora < last + cd) {
+        alert("Check-in is only available once per day.");
+        log("Already checked in today", false);
+        return;
+      }
+      log("Checking in...", true);
+      await (await pts.checkIn()).wait();
+      await refresh();
+      log("Check-in ok: +50 points", true);
+    }
+
     document.getElementById("amountIn").addEventListener("input", () => quote().catch(() => {}));
     document.getElementById("btnConnect").onclick = async () => {
       try { await connect(); } catch (e) { const m = e.message || e; log(m, false); alert(m); }
     };
+    document.getElementById("btnCheckIn").onclick = () =>
+      doCheckIn().catch((e) => {
+        const msg = String(e.message || e);
+        if (msg.toLowerCase().includes("checked in")) alert("Check-in is only available once per day.");
+        log(msg, false);
+      });
     document.getElementById("btnRefresh").onclick = () => refresh().catch((e) => log(e.message || e, false));
     document.getElementById("btnQuote").onclick = () => quote().catch((e) => log(e.message || e, false));
     document.getElementById("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
@@ -332,15 +336,17 @@
     document.getElementById("btnSwap").onclick = async () => {
       try {
         if (!signer) { await connect(); return; }
-        const { amm } = contracts();
+        const { amm, pts } = contracts();
         const amountIn = ethers.parseEther(document.getElementById("amountIn").value);
         const out = await quote();
         const minOut = out * 99n / 100n;
         const tokenIn = kitToSpcx ? KIT : SPCX;
         log("Sending swap...", true);
         await (await amm.swap(tokenIn, amountIn, minOut)).wait();
+        log("Swap ok. Confirm +100 points in MetaMask...", true);
+        await (await pts.awardSwap()).wait();
         await refresh();
-        log("Swap ok", true);
+        log("Swap ok: +100 points", true);
       } catch (e) { log(e.message || e, false); }
     };
   </script>
