@@ -284,10 +284,15 @@
 
     function setBusy(on, btn, label) {
       busy = on;
-      ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn","btnConnect","btnFlip"].forEach((id) => {
+      ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn","btnFlip"].forEach((id) => {
         const el = $(id);
         if (el) el.disabled = on;
       });
+      if (btn && btn.id === "btnConnect") {
+        btn.disabled = false;
+        if (on && label) btn.innerHTML = `<span class="spin"></span>${label}`;
+        return;
+      }
       if (btn && label) {
         btn.dataset.prev = btn.dataset.prev || btn.innerHTML;
         btn.innerHTML = on ? `<span class="spin"></span>${label}` : (btn.dataset.prev || label);
@@ -395,44 +400,89 @@
       $("btnSwap").innerText = "SWAP";
     }
 
-    async function ensureChain() {
+    function eth() {
+      const e = window.ethereum;
+      if (!e) return null;
+      if (Array.isArray(e.providers)) {
+        return e.providers.find((p) => p.isMetaMask) || e.providers[0] || e;
+      }
+      return e;
+    }
+
+    function withTimeout(promise, ms, msg) {
+      let t;
+      const timeout = new Promise((_, rej) => {
+        t = setTimeout(() => rej(new Error(msg || "Timeout")), ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+    }
+
+    async function ensureChain(eip) {
       const hex = "0x" + CHAIN_ID.toString(16);
+      const addParams = {
+        chainId: hex,
+        chainName: "Elysium Testnet",
+        nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
+        rpcUrls: [RPC],
+        blockExplorerUrls: ["https://elysium.kinetiq.xyz/testnet-explorer"]
+      };
       try {
-        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
+        await withTimeout(
+          eip.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] }),
+          20000,
+          "Network switch timed out"
+        );
       } catch (e) {
-        if (e.code === 4902 || String(e.message).includes("Unrecognized")) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: hex,
-              chainName: "Elysium Testnet",
-              nativeCurrency: { name: "HYPE", symbol: "HYPE", decimals: 18 },
-              rpcUrls: [RPC],
-              blockExplorerUrls: ["https://elysium.kinetiq.xyz/testnet-explorer"]
-            }]
-          });
-        } else { throw e; }
+        const code = e.code ?? e?.error?.code;
+        const msg = String(e.message || e);
+        if (code === 4902 || code === -32603 || msg.includes("Unrecognized") || msg.includes("not added")) {
+          await withTimeout(
+            eip.request({ method: "wallet_addEthereumChain", params: [addParams] }),
+            60000,
+            "Add network timed out. Approve Elysium Testnet in the wallet."
+          );
+        } else if (code === 4001) {
+          throw new Error("Network switch cancelled in the wallet.");
+        } else {
+          try {
+            await eip.request({ method: "wallet_addEthereumChain", params: [addParams] });
+          } catch (e2) {
+            if (e2.code === 4001) throw new Error("Network switch cancelled in the wallet.");
+            throw e;
+          }
+        }
       }
     }
 
+    function markConnected(address) {
+      addr = address;
+      $("btnConnect").disabled = false;
+      $("btnConnect").innerText = address.slice(0, 6) + "..." + address.slice(-4);
+      updateSwapLabel();
+    }
+
     async function connect() {
-      if (!window.ethereum) throw new Error("Install MetaMask in Chrome");
-      setBusy(true, $("btnConnect"), "Connecting...");
+      const eip = eth();
+      if (!eip) throw new Error("Install MetaMask in Chrome");
+      $("btnConnect").disabled = false;
+      $("btnConnect").innerHTML = `<span class="spin"></span>Connecting...`;
       try {
-        await ensureChain();
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
+        const accs = await withTimeout(
+          eip.request({ method: "eth_requestAccounts" }),
+          60000,
+          "Wallet did not respond. Open MetaMask and try again."
+        );
+        if (!accs || !accs[0]) throw new Error("No account selected.");
+        markConnected(accs[0]);
+        await ensureChain(eip);
+        provider = new ethers.BrowserProvider(eip);
         signer = await provider.getSigner();
         addr = await signer.getAddress();
-        $("account").innerText = "";
-        $("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
-        $("btnConnect").dataset.prev = $("btnConnect").innerText;
-        updateSwapLabel();
-        await refresh();
-        log("Wallet connected", true);
-      } finally {
-        setBusy(false, $("btnConnect"));
-        $("btnConnect").innerText = addr ? addr.slice(0,6) + "..." + addr.slice(-4) : "Connect";
+        markConnected(addr);
+        refresh().catch(() => {});
+      } catch (e) {
+        if (!addr) $("btnConnect").innerText = "Connect";
+        throw e;
       }
     }
 
@@ -454,8 +504,13 @@
     async function refresh() {
       if (!signer) return;
       const { kit, spcx, amm, pts } = contracts();
+      const safe = (p) => p.catch(() => 0n);
       const [a, b, ra, rb, p] = await Promise.all([
-        kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB(), pts.points(addr)
+        safe(kit.balanceOf(addr)),
+        safe(spcx.balanceOf(addr)),
+        safe(amm.reserveA()),
+        safe(amm.reserveB()),
+        safe(pts.points(addr))
       ]);
       balKit = a; balSpcx = b; resA = ra; resB = rb;
       $("balSell").innerText = kitToSpcx ? short(a) : short(b);
@@ -468,7 +523,7 @@
       $("liqBalB").innerText = short(b);
       $("ptsLabel").innerText = p.toString();
       updateLiqRatio();
-      await updateCheckInStatus();
+      await updateCheckInStatus().catch(() => {});
     }
 
     function fmtLeft(sec) {
@@ -738,9 +793,22 @@
       }
     };
 
-    if (window.ethereum) {
-      window.ethereum.on?.("accountsChanged", () => location.reload());
-      window.ethereum.on?.("chainChanged", () => location.reload());
+    {
+      const eip = eth();
+      eip?.on?.("accountsChanged", (accs) => {
+        if (!accs || !accs[0]) {
+          addr = signer = provider = null;
+          $("btnConnect").innerText = "Connect";
+          updateSwapLabel();
+          return;
+        }
+        if (accs[0].toLowerCase() !== String(addr || "").toLowerCase()) {
+          connect().catch(() => {});
+        }
+      });
+      eip?.on?.("chainChanged", () => {
+        if (addr) refresh().catch(() => {});
+      });
     }
   </script>
 </body>
