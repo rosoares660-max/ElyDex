@@ -59,7 +59,14 @@
     .kit { background: #7aa2ff; }
     .spcx { background: var(--green); }
     .hype { background: #ff8a4c; }
-    .token { cursor: pointer; position: relative; }
+    .token { cursor: pointer; position: relative; padding-right: 22px; }
+    .token .caret {
+      width: 0; height: 0; margin-left: 2px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid #9aa0a8;
+    }
+    .token:hover .caret { border-top-color: #fff; }
     .tok-menu {
       position: absolute; top: 42px; left: 0; z-index: 8;
       background: #1b1c20; border: 1px solid var(--line); border-radius: 14px;
@@ -169,6 +176,7 @@
             <div class="leg-row">
               <div class="token" id="sellTok">
                 <div class="dot kit" id="sellDot">K</div> <span id="sellSym">KIT</span>
+                <span class="caret"></span>
                 <div class="tok-menu" id="sellMenu"></div>
               </div>
               <input class="amt" id="amountIn" placeholder="0" inputmode="decimal" />
@@ -183,6 +191,7 @@
             <div class="leg-row">
               <div class="token" id="buyTok">
                 <div class="dot spcx" id="buyDot">S</div> <span id="buySym">SPCX</span>
+                <span class="caret"></span>
                 <div class="tok-menu" id="buyMenu"></div>
               </div>
               <input class="amt" id="amountOut" placeholder="0" readonly />
