@@ -121,6 +121,19 @@
       border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; cursor: pointer;
     }
     .liq-note { color: var(--muted); font-size: 12px; padding: 4px 6px 0; }
+    .liq-tabs { display: flex; gap: 6px; background: #101114; padding: 4px; border-radius: 999px; border: 1px solid var(--line); margin: 0 0 10px; }
+    .liq-tabs button {
+      flex: 1; border: 0; background: transparent; color: #c7c9ce;
+      padding: 8px; border-radius: 999px; font-weight: 800; cursor: pointer;
+    }
+    .liq-tabs button.on { background: #2a2c31; color: #fff; }
+    .pos-card {
+      background: #101114; border: 1px solid var(--line); border-radius: 16px;
+      padding: 12px; margin: 8px 0;
+    }
+    .pos-top { display: flex; justify-content: space-between; align-items: center; font-weight: 800; }
+    .pos-amt { color: var(--muted); font-size: 13px; margin: 8px 0 10px; }
+    .pos-card .go { margin-top: 0; padding: 10px; font-size: 13px; }
     .socials { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 20; }
     .soc {
       position: relative;
@@ -175,7 +188,7 @@
             </div>
             <div class="leg-row">
               <div class="token" id="sellTok">
-                <div class="dot kit" id="sellDot">K</div> <span id="sellSym">KIT</span>
+                <div class="dot hype" id="sellDot">H</div> <span id="sellSym">HYPE</span>
                 <span class="caret"></span>
                 <div class="tok-menu" id="sellMenu"></div>
               </div>
@@ -190,16 +203,16 @@
             </div>
             <div class="leg-row">
               <div class="token" id="buyTok">
-                <div class="dot spcx" id="buyDot">S</div> <span id="buySym">SPCX</span>
+                <div class="dot kit" id="buyDot">K</div> <span id="buySym">KIT</span>
                 <span class="caret"></span>
                 <div class="tok-menu" id="buyMenu"></div>
               </div>
               <input class="amt" id="amountOut" placeholder="0" readonly />
             </div>
           </div>
-          <div class="meta">
-            <span id="minOutLabel">Min. received: —</span>
-            <span id="poolLabel">Pool: —</span>
+          <div id="swapMeta" class="hidden">
+            <span id="minOutLabel"></span>
+            <span id="poolLabel"></span>
           </div>
           <div class="slip">
             <span>Slippage</span>
@@ -215,17 +228,22 @@
       </div>
       <div id="viewLiq" class="swap-card hidden">
         <div class="liq-head">
-          <p class="liq-title">Add liquidity</p>
+          <p class="liq-title" id="liqTitle">Liquidity</p>
           <div class="steps">
             <span class="step on" id="step1">1. Approve</span>
             <span class="step" id="step2">2. Deposit</span>
           </div>
         </div>
+        <div class="liq-tabs">
+          <button class="on" id="tabAddLiq" type="button">Add</button>
+          <button id="tabPosLiq" type="button">Positions</button>
+        </div>
+        <div id="liqAddBox">
         <p class="sub" id="liqSub">Choose a pair, approve once, then deposit in the pool ratio.</p>
         <select class="plain pair-sel" id="liqPair">
+          <option value="KIT-HYPE" selected>HYPE / KIT</option>
+          <option value="SPCX-HYPE">HYPE / SPCX</option>
           <option value="KIT-SPCX">KIT / SPCX</option>
-          <option value="KIT-HYPE">KIT / HYPE</option>
-          <option value="SPCX-HYPE">SPCX / HYPE</option>
         </select>
         <div class="leg">
           <div class="leg-top">
@@ -260,6 +278,11 @@
         <p class="liq-note" id="liqHint">Enter one amount — the other follows the pool ratio.</p>
         <button class="go" id="btnApprove">1. APPROVE TOKENS</button>
         <button class="go secondary" id="btnLiq" style="margin-top:8px;">2. ADD LIQUIDITY</button>
+        </div>
+        <div id="liqPosBox" class="hidden">
+          <p class="sub">Your pool shares. Closing a position is coming soon.</p>
+          <div id="posList"></div>
+        </div>
       </div>
       <div id="viewFaucet" class="swap-card hidden">
         <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
@@ -290,14 +313,14 @@
     const AMM_KIT_HYPE = "0xdeDcbE563bFa149e164D7fd4f2893A8b8bBb59C6";
     const AMM_SPCX_HYPE = "0x8829fd05d3FAD21bE02cc5F293dc609C702b3127";
     const TOKENS = {
+      HYPE: { id: "HYPE", addr: WHYPE, sym: "HYPE", letter: "H", cls: "hype" },
       KIT:  { id: "KIT",  addr: KIT,   sym: "KIT",  letter: "K", cls: "kit" },
-      SPCX: { id: "SPCX", addr: SPCX,  sym: "SPCX", letter: "S", cls: "spcx" },
-      HYPE: { id: "HYPE", addr: WHYPE, sym: "HYPE", letter: "H", cls: "hype" }
+      SPCX: { id: "SPCX", addr: SPCX,  sym: "SPCX", letter: "S", cls: "spcx" }
     };
     const PAIRS = {
-      "KIT-SPCX":  { amm: AMM,           a: "KIT",  b: "SPCX" },
       "KIT-HYPE":  { amm: AMM_KIT_HYPE,  a: "KIT",  b: "HYPE" },
-      "SPCX-HYPE": { amm: AMM_SPCX_HYPE, a: "SPCX", b: "HYPE" }
+      "SPCX-HYPE": { amm: AMM_SPCX_HYPE, a: "SPCX", b: "HYPE" },
+      "KIT-SPCX":  { amm: AMM,           a: "KIT",  b: "SPCX" }
     };
     function pairKey(x, y) {
       const set = [x, y].sort().join("|");
@@ -319,7 +342,10 @@
       "function reserveB() view returns (uint256)",
       "function addLiquidity(uint256 amountA, uint256 amountB) returns (uint256)",
       "function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) view returns (uint256)",
-      "function swap(address tokenIn, uint256 amountIn, uint256 minOut) returns (uint256)"
+      "function swap(address tokenIn, uint256 amountIn, uint256 minOut) returns (uint256)",
+      "function shares(address) view returns (uint256)",
+      "function totalShares() view returns (uint256)",
+      "function removeLiquidity(uint256 shareAmount) returns (uint256, uint256)"
     ];
     const faucetAbi = [
       "function claim()",
@@ -333,9 +359,9 @@
       "function checkIn()",
       "function awardSwap()"
     ];
-    let provider, signer, addr, sellId = "KIT", buyId = "SPCX", busy = false;
+    let provider, signer, addr, sellId = "HYPE", buyId = "KIT", busy = false;
     let bals = { KIT: 0n, SPCX: 0n, HYPE: 0n }, nativeHype = 0n, wrappedHype = 0n;
-    const HYPE_GAS_KEEP = 20000000000000000n; // 0.02 HYPE for gas
+    const HYPE_GAS_KEEP = 20000000000000000n;
     let lastOut = 0n, slipPct = 1;
     let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
     let checkNextAt = 0, checkTimer = null;
@@ -402,8 +428,21 @@
     }
 
     $("tabSwap").onclick = () => show("viewSwap");
-    $("tabLiq").onclick = () => show("viewLiq");
+    $("tabLiq").onclick = () => { show("viewLiq"); loadPositions().catch(() => {}); };
     $("tabFaucet").onclick = () => show("viewFaucet");
+    $("tabAddLiq").onclick = () => {
+      $("tabAddLiq").classList.add("on");
+      $("tabPosLiq").classList.remove("on");
+      $("liqAddBox").classList.remove("hidden");
+      $("liqPosBox").classList.add("hidden");
+    };
+    $("tabPosLiq").onclick = () => {
+      $("tabPosLiq").classList.add("on");
+      $("tabAddLiq").classList.remove("on");
+      $("liqAddBox").classList.add("hidden");
+      $("liqPosBox").classList.remove("hidden");
+      loadPositions().catch(() => {});
+    };
     function soon() { alert("Soon"); }
     $("btnDiscord").onclick = soon;
     $("btnTwitter").onclick = soon;
@@ -448,7 +487,7 @@
         buyId = id;
       }
       if (!pairKey(sellId, buyId)) {
-        buyId = sellId === "KIT" ? "SPCX" : "KIT";
+        buyId = sellId === "HYPE" ? "KIT" : "HYPE";
       }
       $("amountOut").value = "";
       lastOut = 0n;
@@ -651,7 +690,7 @@
       return new ethers.Contract(PAIRS[key].amm, ammAbi, signer);
     }
     function contracts() {
-      const pk = pairKey(sellId, buyId) || "KIT-SPCX";
+      const pk = pairKey(sellId, buyId) || "KIT-HYPE";
       return {
         kit: tokenContract("KIT"),
         spcx: tokenContract("SPCX"),
@@ -682,7 +721,7 @@
     }
 
     function liqKey() {
-      return $("liqPair")?.value || "KIT-SPCX";
+      return $("liqPair")?.value || "KIT-HYPE";
     }
     function paintLiqPair() {
       const p = PAIRS[liqKey()];
@@ -699,7 +738,7 @@
     async function refresh() {
       if (!signer) return;
       const { kit, spcx, whype, pts } = contracts();
-      const pk = pairKey(sellId, buyId) || "KIT-SPCX";
+      const pk = pairKey(sellId, buyId) || "KIT-HYPE";
       const lk = liqKey();
       const swapAmm = ammOf(pk);
       const liqAmm = ammOf(lk);
@@ -938,6 +977,52 @@
     $("btnRefresh").onclick = () => refresh().catch((e) => log(friendlyError(e), false));
     $("btnQuote").onclick = () => quote().catch((e) => log(friendlyError(e), false));
     $("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
+
+    async function loadPositions() {
+      const box = $("posList");
+      if (!box) return;
+      if (!signer) {
+        box.innerHTML = `<p class="sub">Connect wallet to see positions.</p>`;
+        return;
+      }
+      box.innerHTML = `<p class="sub">Loading...</p>`;
+      const rows = [];
+      for (const key of Object.keys(PAIRS)) {
+        const p = PAIRS[key];
+        const amm = ammOf(key);
+        try {
+          const [sh, ts, ra, rb] = await Promise.all([
+            amm.shares(addr),
+            amm.totalShares(),
+            amm.reserveA(),
+            amm.reserveB()
+          ]);
+          if (sh === 0n || ts === 0n) continue;
+          const outA = ra * sh / ts;
+          const outB = rb * sh / ts;
+          rows.push({ key, p, sh, outA, outB });
+        } catch (_) {}
+      }
+      if (!rows.length) {
+        box.innerHTML = `<p class="sub">No positions yet. Add liquidity first. HYPE pools need the updated AMM with removeLiquidity.</p>`;
+        return;
+      }
+      box.innerHTML = rows.map((r) => `
+        <div class="pos-card">
+          <div class="pos-top">
+            <span>${TOKENS[r.p.a].sym} / ${TOKENS[r.p.b].sym}</span>
+          </div>
+          <div class="pos-amt">${short(r.outA)} ${TOKENS[r.p.a].sym} + ${short(r.outB)} ${TOKENS[r.p.b].sym}</div>
+          <button class="go" type="button" data-close="${r.key}">Close position</button>
+        </div>`).join("");
+      box.querySelectorAll("[data-close]").forEach((btn) => {
+        btn.onclick = () => closePosition(btn.dataset.close).catch((e) => log(friendlyError(e), false));
+      });
+    }
+
+    async function closePosition(_key) {
+      alert("Soon");
+    }
 
     $("liqPair").onchange = () => {
       paintLiqPair();
