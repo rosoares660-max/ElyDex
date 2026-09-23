@@ -58,6 +58,21 @@
     .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #111; font-weight: 900; }
     .kit { background: #7aa2ff; }
     .spcx { background: var(--green); }
+    .hype { background: #ff8a4c; }
+    .token { cursor: pointer; position: relative; }
+    .tok-menu {
+      position: absolute; top: 42px; left: 0; z-index: 8;
+      background: #1b1c20; border: 1px solid var(--line); border-radius: 14px;
+      padding: 6px; min-width: 140px; display: none;
+    }
+    .tok-menu.open { display: block; }
+    .tok-menu button {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      background: transparent; border: 0; color: #fff; font-weight: 800;
+      padding: 8px; border-radius: 10px; cursor: pointer;
+    }
+    .tok-menu button:hover { background: #2a2c31; }
+    .pair-sel { width: 100%; margin: 0 0 8px; }
     .amt { width: 150px; background: transparent; border: 0; color: #fff; font-size: 28px; text-align: right; outline: none; }
     .flip-wrap { display: flex; justify-content: center; margin: -6px 0; position: relative; z-index: 2; }
     .flip { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #1b1c20; color: #fff; cursor: pointer; font-size: 16px; }
@@ -152,7 +167,10 @@
               <button class="bal-btn" id="balSellBtn" type="button">Balance: <span id="balSell">0</span></button>
             </div>
             <div class="leg-row">
-              <div class="token"><div class="dot kit" id="sellDot">K</div> <span id="sellSym">KIT</span></div>
+              <div class="token" id="sellTok">
+                <div class="dot kit" id="sellDot">K</div> <span id="sellSym">KIT</span>
+                <div class="tok-menu" id="sellMenu"></div>
+              </div>
               <input class="amt" id="amountIn" placeholder="0" inputmode="decimal" />
             </div>
           </div>
@@ -163,7 +181,10 @@
               <span>Balance: <span id="balBuy">0</span></span>
             </div>
             <div class="leg-row">
-              <div class="token"><div class="dot spcx" id="buyDot">S</div> <span id="buySym">SPCX</span></div>
+              <div class="token" id="buyTok">
+                <div class="dot spcx" id="buyDot">S</div> <span id="buySym">SPCX</span>
+                <div class="tok-menu" id="buyMenu"></div>
+              </div>
               <input class="amt" id="amountOut" placeholder="0" readonly />
             </div>
           </div>
@@ -191,30 +212,35 @@
             <span class="step" id="step2">2. Deposit</span>
           </div>
         </div>
-        <p class="sub">Deposit KIT and SPCX in the pool ratio. Approve once, then add.</p>
+        <p class="sub" id="liqSub">Choose a pair, approve once, then deposit in the pool ratio.</p>
+        <select class="plain pair-sel" id="liqPair">
+          <option value="KIT-SPCX">KIT / SPCX</option>
+          <option value="KIT-HYPE">KIT / HYPE</option>
+          <option value="SPCX-HYPE">SPCX / HYPE</option>
+        </select>
         <div class="leg">
           <div class="leg-top">
-            <span>KIT</span>
+            <span id="liqAName">KIT</span>
             <span>
               <button class="bal-btn" id="liqBalABtn" type="button">Balance: <span id="liqBalA">0</span></button>
               <button class="max-btn" id="liqMaxA" type="button">MAX</button>
             </span>
           </div>
           <div class="leg-row">
-            <div class="token"><div class="dot kit">K</div> KIT</div>
+            <div class="token"><div class="dot kit" id="liqADot">K</div> <span id="liqASym">KIT</span></div>
             <input class="amt" id="liqA" placeholder="0" inputmode="decimal" />
           </div>
         </div>
         <div class="leg">
           <div class="leg-top">
-            <span>SPCX</span>
+            <span id="liqBName">SPCX</span>
             <span>
               <button class="bal-btn" id="liqBalBBtn" type="button">Balance: <span id="liqBalB">0</span></button>
               <button class="max-btn" id="liqMaxB" type="button">MAX</button>
             </span>
           </div>
           <div class="leg-row">
-            <div class="token"><div class="dot spcx">S</div> SPCX</div>
+            <div class="token"><div class="dot spcx" id="liqBDot">S</div> <span id="liqBSym">SPCX</span></div>
             <input class="amt" id="liqB" placeholder="0" inputmode="decimal" />
           </div>
         </div>
@@ -250,12 +276,34 @@
     const RPC = "https://testnet-rpc.elysium.kinetiq.xyz";
     const KIT = "0xc8859BB6cfF436C5ae2B623364Ef1f024cc7FcB5";
     const SPCX = "0xbB23E11476c4E09E932EA0b826089427d7Bb4Ba8";
+    const WHYPE = "0x5Ef0c182674628B10F4D85e5c9f19191b4A24fBC";
     const AMM = "0x67469B9aD6135473136014C42f79CB478D8aD2bc";
+    const AMM_KIT_HYPE = "0xdeDcbE563bFa149e164D7fd4f2893A8b8bBb59C6";
+    const AMM_SPCX_HYPE = "0x8829fd05d3FAD21bE02cc5F293dc609C702b3127";
+    const TOKENS = {
+      KIT:  { id: "KIT",  addr: KIT,   sym: "KIT",  letter: "K", cls: "kit" },
+      SPCX: { id: "SPCX", addr: SPCX,  sym: "SPCX", letter: "S", cls: "spcx" },
+      HYPE: { id: "HYPE", addr: WHYPE, sym: "HYPE", letter: "H", cls: "hype" }
+    };
+    const PAIRS = {
+      "KIT-SPCX":  { amm: AMM,           a: "KIT",  b: "SPCX" },
+      "KIT-HYPE":  { amm: AMM_KIT_HYPE,  a: "KIT",  b: "HYPE" },
+      "SPCX-HYPE": { amm: AMM_SPCX_HYPE, a: "SPCX", b: "HYPE" }
+    };
+    function pairKey(x, y) {
+      const set = [x, y].sort().join("|");
+      if (set === "KIT|SPCX") return "KIT-SPCX";
+      if (set === "HYPE|KIT") return "KIT-HYPE";
+      if (set === "HYPE|SPCX") return "SPCX-HYPE";
+      return null;
+    }
     const FAUCET = "0x5D05dEf10B7d5365CA8ede46Ff35E5a4046A9013";
     const POINTS = "0xA427d47B434e562fCd864725594CCe0796Ecfe20";
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
-      "function balanceOf(address) view returns (uint256)"
+      "function balanceOf(address) view returns (uint256)",
+      "function deposit() payable",
+      "function withdraw(uint256 wad)"
     ];
     const ammAbi = [
       "function reserveA() view returns (uint256)",
@@ -276,8 +324,9 @@
       "function checkIn()",
       "function awardSwap()"
     ];
-    let provider, signer, addr, kitToSpcx = true, busy = false;
-    let balKit = 0n, balSpcx = 0n, lastOut = 0n, slipPct = 1;
+    let provider, signer, addr, sellId = "KIT", buyId = "SPCX", busy = false;
+    let bals = { KIT: 0n, SPCX: 0n, HYPE: 0n }, nativeHype = 0n;
+    let lastOut = 0n, slipPct = 1;
     let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
     let checkNextAt = 0, checkTimer = null;
 
@@ -349,21 +398,74 @@
     $("btnDiscord").onclick = soon;
     $("btnTwitter").onclick = soon;
 
-    function syncDir() {
-      $("tokenIn").value = kitToSpcx ? "A" : "B";
-      $("sellSym").innerText = kitToSpcx ? "KIT" : "SPCX";
-      $("buySym").innerText = kitToSpcx ? "SPCX" : "KIT";
-      $("sellDot").innerText = kitToSpcx ? "K" : "S";
-      $("buyDot").innerText = kitToSpcx ? "S" : "K";
-      $("sellDot").className = "dot " + (kitToSpcx ? "kit" : "spcx");
-      $("buyDot").className = "dot " + (kitToSpcx ? "spcx" : "kit");
-      $("balSell").innerText = short(kitToSpcx ? balKit : balSpcx);
-      $("balBuy").innerText = short(kitToSpcx ? balSpcx : balKit);
+    function currentPair() {
+      return PAIRS[pairKey(sellId, buyId)];
     }
+    function paintToken(dotId, symId, id) {
+      const t = TOKENS[id];
+      $(dotId).innerText = t.letter;
+      $(dotId).className = "dot " + t.cls;
+      $(symId).innerText = t.sym;
+    }
+    function syncDir() {
+      paintToken("sellDot", "sellSym", sellId);
+      paintToken("buyDot", "buySym", buyId);
+      $("balSell").innerText = short(bals[sellId] || 0n);
+      $("balBuy").innerText = short(bals[buyId] || 0n);
+      $("tokenIn").value = currentPair() && TOKENS[currentPair().a].id === sellId ? "A" : "B";
+    }
+    function fillMenu(el, side) {
+      el.innerHTML = "";
+      Object.keys(TOKENS).forEach((id) => {
+        const t = TOKENS[id];
+        const b = document.createElement("button");
+        b.type = "button";
+        b.innerHTML = `<span class="dot ${t.cls}">${t.letter}</span>${t.sym}`;
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          pickToken(side, id);
+          el.classList.remove("open");
+        };
+        el.appendChild(b);
+      });
+    }
+    function pickToken(side, id) {
+      if (side === "sell") {
+        if (id === buyId) buyId = sellId;
+        sellId = id;
+      } else {
+        if (id === sellId) sellId = buyId;
+        buyId = id;
+      }
+      if (!pairKey(sellId, buyId)) {
+        buyId = sellId === "KIT" ? "SPCX" : "KIT";
+      }
+      $("amountOut").value = "";
+      lastOut = 0n;
+      syncDir();
+      quote().catch(() => {});
+      refresh().catch(() => {});
+    }
+    fillMenu($("sellMenu"), "sell");
+    fillMenu($("buyMenu"), "buy");
+    $("sellTok").onclick = (e) => {
+      e.stopPropagation();
+      $("sellMenu").classList.toggle("open");
+      $("buyMenu").classList.remove("open");
+    };
+    $("buyTok").onclick = (e) => {
+      e.stopPropagation();
+      $("buyMenu").classList.toggle("open");
+      $("sellMenu").classList.remove("open");
+    };
+    document.addEventListener("click", () => {
+      $("sellMenu").classList.remove("open");
+      $("buyMenu").classList.remove("open");
+    });
 
     $("btnFlip").onclick = () => {
       if (busy) return;
-      kitToSpcx = !kitToSpcx;
+      const tmp = sellId; sellId = buyId; buyId = tmp;
       const a = $("amountIn").value;
       $("amountIn").value = $("amountOut").value || "";
       $("amountOut").value = a || "";
@@ -532,11 +634,19 @@
       }
     }
 
+    function tokenContract(id) {
+      return new ethers.Contract(TOKENS[id].addr, tokenAbi, signer);
+    }
+    function ammOf(key) {
+      return new ethers.Contract(PAIRS[key].amm, ammAbi, signer);
+    }
     function contracts() {
+      const pk = pairKey(sellId, buyId) || "KIT-SPCX";
       return {
-        kit: new ethers.Contract(KIT, tokenAbi, signer),
-        spcx: new ethers.Contract(SPCX, tokenAbi, signer),
-        amm: new ethers.Contract(AMM, ammAbi, signer),
+        kit: tokenContract("KIT"),
+        spcx: tokenContract("SPCX"),
+        whype: tokenContract("HYPE"),
+        amm: ammOf(pk),
         faucet: new ethers.Contract(FAUCET, faucetAbi, signer),
         pts: new ethers.Contract(POINTS, pointsAbi, signer)
       };
@@ -561,32 +671,54 @@
       return toNum(n).toLocaleString("en-US", { maximumFractionDigits: 6 });
     }
 
+    function liqKey() {
+      return $("liqPair")?.value || "KIT-SPCX";
+    }
+    function paintLiqPair() {
+      const p = PAIRS[liqKey()];
+      const A = TOKENS[p.a], B = TOKENS[p.b];
+      $("liqAName").innerText = A.sym;
+      $("liqASym").innerText = A.sym;
+      $("liqADot").innerText = A.letter;
+      $("liqADot").className = "dot " + A.cls;
+      $("liqBName").innerText = B.sym;
+      $("liqBSym").innerText = B.sym;
+      $("liqBDot").innerText = B.letter;
+      $("liqBDot").className = "dot " + B.cls;
+    }
     async function refresh() {
       if (!signer) return;
-      const { kit, spcx, amm, pts } = contracts();
+      const { kit, spcx, whype, pts } = contracts();
+      const pk = pairKey(sellId, buyId) || "KIT-SPCX";
+      const lk = liqKey();
+      const swapAmm = ammOf(pk);
+      const liqAmm = ammOf(lk);
       const safe = (p) => p.catch(() => 0n);
-      const [a, b, ra, rb, p] = await Promise.all([
+      const [a, b, h, nat, ra, rb, lra, lrb, p] = await Promise.all([
         safe(kit.balanceOf(addr)),
         safe(spcx.balanceOf(addr)),
-        safe(amm.reserveA()),
-        safe(amm.reserveB()),
+        safe(whype.balanceOf(addr)),
+        provider.getBalance(addr).catch(() => 0n),
+        safe(swapAmm.reserveA()),
+        safe(swapAmm.reserveB()),
+        safe(liqAmm.reserveA()),
+        safe(liqAmm.reserveB()),
         safe(pts.points(addr))
       ]);
-      balKit = a; balSpcx = b; resA = ra; resB = rb;
-      $("balSell").innerText = kitToSpcx ? short(a) : short(b);
-      $("balSell").title = kitToSpcx ? full(a) : full(b);
-      $("balBuy").innerText = kitToSpcx ? short(b) : short(a);
-      $("balBuy").title = kitToSpcx ? full(b) : full(a);
-      $("poolKit").innerText = "Pool " + short(ra);
-      $("poolSpcx").innerText = "Pool " + short(rb);
-      $("poolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
-      $("poolLabel").title = full(ra) + " KIT / " + full(rb) + " SPCX";
-      $("liqPoolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
-      $("liqPoolLabel").title = full(ra) + " KIT / " + full(rb) + " SPCX";
-      $("liqBalA").innerText = short(a);
-      $("liqBalA").title = full(a);
-      $("liqBalB").innerText = short(b);
-      $("liqBalB").title = full(b);
+      bals.KIT = a; bals.SPCX = b; bals.HYPE = h; nativeHype = nat;
+      resA = lra; resB = lrb;
+      syncDir();
+      $("balSell").title = full(bals[sellId]);
+      $("balBuy").title = full(bals[buyId]);
+      const ps = PAIRS[pk];
+      $("poolLabel").innerText = "Pool: " + short(ra) + " " + ps.a + " / " + short(rb) + " " + ps.b;
+      const lp = PAIRS[lk];
+      paintLiqPair();
+      $("liqPoolLabel").innerText = "Pool: " + short(lra) + " " + lp.a + " / " + short(lrb) + " " + lp.b;
+      $("liqBalA").innerText = short(bals[lp.a]);
+      $("liqBalA").title = full(bals[lp.a]);
+      $("liqBalB").innerText = short(bals[lp.b]);
+      $("liqBalB").title = full(bals[lp.b]);
       $("ptsLabel").innerText = p.toString();
       updateLiqRatio();
       await updateCheckInStatus().catch(() => {});
@@ -693,11 +825,14 @@
         updateMinOut();
         return 0n;
       }
-      const { amm } = contracts();
+      const pk = pairKey(sellId, buyId);
+      if (!pk) return 0n;
+      const amm = ammOf(pk);
       const amountIn = ethers.parseEther($("amountIn").value);
       const ra = await amm.reserveA();
       const rb = await amm.reserveB();
-      const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
+      const aIn = PAIRS[pk].a === sellId;
+      const out = await amm.getAmountOut(amountIn, aIn ? ra : rb, aIn ? rb : ra);
       lastOut = out;
       const outN = Number(ethers.formatEther(out));
       $("amountOut").value = outN >= 1000 ? outN.toFixed(2) : outN >= 1 ? outN.toFixed(4) : outN.toFixed(6);
@@ -706,7 +841,7 @@
     }
 
     $("balSellBtn").onclick = () => {
-      const bal = kitToSpcx ? balKit : balSpcx;
+      const bal = bals[sellId] || 0n;
       if (bal === 0n) return;
       $("amountIn").value = ethers.formatEther(bal);
       quote().catch(() => {});
@@ -791,16 +926,21 @@
     $("btnQuote").onclick = () => quote().catch((e) => log(friendlyError(e), false));
     $("btnFaucet").onclick = () => pedirFaucet().catch(avisoFaucet);
 
+    $("liqPair").onchange = () => {
+      paintLiqPair();
+      $("liqA").value = "";
+      $("liqB").value = "";
+      refresh().catch(() => {});
+    };
+
     $("btnApprove").onclick = async () => {
       try {
         if (!signer) await connect();
-        const { kit, spcx } = contracts();
-        setBusy(true, $("btnApprove"), "Approving KIT...");
-        log("Approving KIT...", true);
-        await waitTx(await kit.approve(AMM, ethers.MaxUint256));
-        $("btnApprove").innerHTML = `<span class="spin"></span>Approving SPCX...`;
-        log("Approving SPCX...", true);
-        await waitTx(await spcx.approve(AMM, ethers.MaxUint256));
+        const p = PAIRS[liqKey()];
+        setBusy(true, $("btnApprove"), "Approving " + p.a + "...");
+        await waitTx(await tokenContract(p.a).approve(p.amm, ethers.MaxUint256));
+        $("btnApprove").innerHTML = `<span class="spin"></span>Approving ${p.b}...`;
+        await waitTx(await tokenContract(p.b).approve(p.amm, ethers.MaxUint256));
         approvedLiq = true;
         $("step1").className = "step ok";
         $("step2").className = "step on";
@@ -812,16 +952,26 @@
       }
     };
 
+    async function ensureWhype(need) {
+      if ((bals.HYPE || 0n) >= need) return;
+      const miss = need - (bals.HYPE || 0n);
+      if (nativeHype <= miss) throw new Error("Not enough HYPE. Wrap more HYPE first.");
+      const whype = tokenContract("HYPE");
+      await waitTx(await whype.deposit({ value: miss }));
+      bals.HYPE += miss;
+    }
+
     $("btnLiq").onclick = async () => {
       try {
         if (!signer) await connect();
-        const { amm } = contracts();
+        const p = PAIRS[liqKey()];
         const a = ethers.parseEther($("liqA").value || "0");
         const b = ethers.parseEther($("liqB").value || "0");
-        if (a <= 0n || b <= 0n) { log("Enter both KIT and SPCX amounts.", false); return; }
+        if (a <= 0n || b <= 0n) { log("Enter both token amounts.", false); return; }
         setBusy(true, $("btnLiq"), "Confirm in wallet...");
-        log("Adding liquidity...", true);
-        const tx = await amm.addLiquidity(a, b);
+        if (p.a === "HYPE") await ensureWhype(a);
+        if (p.b === "HYPE") await ensureWhype(b);
+        const tx = await ammOf(liqKey()).addLiquidity(a, b);
         $("btnLiq").innerHTML = `<span class="spin"></span>Waiting for tx...`;
         await waitTx(tx);
         await refresh();
@@ -838,11 +988,12 @@
     $("liqA").addEventListener("input", pairFromA);
     $("liqB").addEventListener("input", pairFromB);
     function fillLiqMax(which) {
+      const p = PAIRS[liqKey()];
       if (which === "A") {
-        $("liqA").value = ethers.formatEther(balKit);
+        $("liqA").value = ethers.formatEther(bals[p.a] || 0n);
         pairFromA();
       } else {
-        $("liqB").value = ethers.formatEther(balSpcx);
+        $("liqB").value = ethers.formatEther(bals[p.b] || 0n);
         pairFromB();
       }
     }
@@ -857,14 +1008,19 @@
         const raw = $("amountIn").value.trim();
         if (!raw || Number(raw) <= 0) { log("Enter an amount to swap.", false); return; }
         const amountIn = ethers.parseEther(raw);
-        const bal = kitToSpcx ? balKit : balSpcx;
-        if (amountIn > bal) { log("Amount is bigger than your balance.", false); return; }
-        const { amm, pts } = contracts();
+        const pk = pairKey(sellId, buyId);
+        if (!pk) { log("This pair is not available.", false); return; }
+        if (sellId === "HYPE") await ensureWhype(amountIn);
+        const bal = bals[sellId] || 0n;
+        if (amountIn > bal && sellId !== "HYPE") { log("Amount is bigger than your balance.", false); return; }
+        if (sellId === "HYPE" && amountIn > (bals.HYPE || 0n)) { log("Amount is bigger than your WHYPE balance.", false); return; }
+        const { pts } = contracts();
         const out = await quote();
         const minOut = out * BigInt(10000 - getSlipBps()) / 10000n;
-        const tokenIn = kitToSpcx ? KIT : SPCX;
+        const tokenIn = TOKENS[sellId].addr;
         setBusy(true, $("btnSwap"), "Confirm swap...");
-        log("Confirm the swap in MetaMask...", true);
+        const amm = ammOf(pk);
+        await waitTx(await tokenContract(sellId).approve(PAIRS[pk].amm, amountIn));
         const tx = await amm.swap(tokenIn, amountIn, minOut);
         $("btnSwap").innerHTML = `<span class="spin"></span>Swapping...`;
         await waitTx(tx);
