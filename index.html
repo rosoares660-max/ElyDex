@@ -315,6 +315,7 @@
       if (s.includes("cooldown") || s.includes("espera")) return "Still in cooldown. Try again later.";
       if (s.includes("checked in")) return "Check-in is only available once per day.";
       if (s.includes("install metamask")) return "Install MetaMask in your browser.";
+      if (s.includes("coalesce")) return "";
       const cut = raw.split("(")[0].trim();
       return cut.slice(0, 180) || "Something went wrong.";
     }
@@ -326,6 +327,7 @@
         el.innerHTML = "";
         return;
       }
+      if (!msg) { el.classList.add("hidden"); el.innerHTML = ""; return; }
       el.classList.remove("hidden");
       el.innerHTML = `<div class="err">${msg}</div>`;
     }
@@ -409,6 +411,28 @@
       return e;
     }
 
+    function isCoalesce(e) {
+      const s = String(e?.shortMessage || e?.message || e).toLowerCase();
+      return s.includes("coalesce") || s.includes("already known") || s.includes("replacement") || s.includes("nonce");
+    }
+
+    async function waitTx(tx) {
+      if (!tx) return null;
+      try {
+        return await tx.wait();
+      } catch (e) {
+        if (tx.hash && provider) {
+          for (let i = 0; i < 25; i++) {
+            const rec = await provider.getTransactionReceipt(tx.hash).catch(() => null);
+            if (rec) return rec;
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+        }
+        if (isCoalesce(e)) return tx;
+        throw e;
+      }
+    }
+
     function withTimeout(promise, ms, msg) {
       let t;
       const timeout = new Promise((_, rej) => {
@@ -461,6 +485,15 @@
       updateSwapLabel();
     }
 
+    async function attachWallet(eip, address) {
+      provider = new ethers.BrowserProvider(eip);
+      signer = await provider.getSigner();
+      addr = address || await signer.getAddress();
+      try { localStorage.setItem("elydex.addr", addr); } catch (_) {}
+      markConnected(addr);
+      refresh().catch(() => {});
+    }
+
     async function connect() {
       const eip = eth();
       if (!eip) throw new Error("Install MetaMask in Chrome");
@@ -475,14 +508,26 @@
         if (!accs || !accs[0]) throw new Error("No account selected.");
         markConnected(accs[0]);
         await ensureChain(eip);
-        provider = new ethers.BrowserProvider(eip);
-        signer = await provider.getSigner();
-        addr = await signer.getAddress();
-        markConnected(addr);
-        refresh().catch(() => {});
+        await attachWallet(eip, accs[0]);
       } catch (e) {
         if (!addr) $("btnConnect").innerText = "Connect";
         throw e;
+      }
+    }
+
+    async function restoreWallet() {
+      const eip = eth();
+      if (!eip) return;
+      let saved = "";
+      try { saved = localStorage.getItem("elydex.addr") || ""; } catch (_) {}
+      if (saved) markConnected(saved);
+      try {
+        const accs = await eip.request({ method: "eth_accounts" });
+        if (!accs || !accs[0]) return;
+        try { await ensureChain(eip); } catch (_) {}
+        await attachWallet(eip, accs[0]);
+      } catch (_) {
+        if (!addr) $("btnConnect").innerText = "Connect";
       }
     }
 
@@ -639,7 +684,7 @@
         log("Claiming tokens...", true);
         const tx = await faucet.claim();
         $("btnFaucet").innerHTML = `<span class="spin"></span>Waiting for tx...`;
-        await tx.wait();
+        await waitTx(tx);
         await refresh();
         log("Faucet ok: 10 KIT + 10 SPCX", true);
       } finally {
@@ -650,7 +695,7 @@
 
     function avisoFaucet(e) {
       const msg = friendlyError(e);
-      if (msg.toLowerCase().includes("cooldown")) alert("The faucet can only be used once per hour.");
+      if (msg && msg.toLowerCase().includes("cooldown")) alert("The faucet can only be used once per hour.");
       log(msg, false);
       setBusy(false);
     }
@@ -673,7 +718,7 @@
         log("Checking in for +50 ElyPoints...", true);
         const tx = await pts.checkIn();
         $("btnCheckIn").innerHTML = `<span class="spin"></span>+50`;
-        await tx.wait();
+        await waitTx(tx);
         await refresh();
         log("Check-in ok: +50 ElyPoints", true);
       } finally {
@@ -706,10 +751,10 @@
         const { kit, spcx } = contracts();
         setBusy(true, $("btnApprove"), "Approving KIT...");
         log("Approving KIT...", true);
-        await (await kit.approve(AMM, ethers.MaxUint256)).wait();
+        await waitTx(await kit.approve(AMM, ethers.MaxUint256));
         $("btnApprove").innerHTML = `<span class="spin"></span>Approving SPCX...`;
         log("Approving SPCX...", true);
-        await (await spcx.approve(AMM, ethers.MaxUint256)).wait();
+        await waitTx(await spcx.approve(AMM, ethers.MaxUint256));
         approvedLiq = true;
         $("step1").className = "step ok";
         $("step2").className = "step on";
@@ -732,7 +777,7 @@
         log("Adding liquidity...", true);
         const tx = await amm.addLiquidity(a, b);
         $("btnLiq").innerHTML = `<span class="spin"></span>Waiting for tx...`;
-        await tx.wait();
+        await waitTx(tx);
         await refresh();
         $("liqA").value = "";
         $("liqB").value = "";
@@ -776,16 +821,18 @@
         log("Confirm the swap in MetaMask...", true);
         const tx = await amm.swap(tokenIn, amountIn, minOut);
         $("btnSwap").innerHTML = `<span class="spin"></span>Swapping...`;
-        await tx.wait();
-        log("Swap confirmed. Confirm +100 points...", true);
-        $("btnSwap").innerHTML = `<span class="spin"></span>Awarding points...`;
-        await (await pts.awardSwap()).wait();
-        await refresh();
+        await waitTx(tx);
         $("amountIn").value = "";
         $("amountOut").value = "";
         lastOut = 0n;
         updateMinOut();
-        log("Swap ok: +100 points", true);
+        try {
+          $("btnSwap").innerHTML = `<span class="spin"></span>Awarding points...`;
+          await waitTx(await pts.awardSwap());
+          await refresh();
+        } catch (_) {
+          await refresh();
+        }
       } catch (e) { log(friendlyError(e), false); }
       finally {
         setBusy(false);
@@ -793,18 +840,18 @@
       }
     };
 
+    restoreWallet().catch(() => {});
     {
       const eip = eth();
       eip?.on?.("accountsChanged", (accs) => {
         if (!accs || !accs[0]) {
           addr = signer = provider = null;
+          try { localStorage.removeItem("elydex.addr"); } catch (_) {}
           $("btnConnect").innerText = "Connect";
           updateSwapLabel();
           return;
         }
-        if (accs[0].toLowerCase() !== String(addr || "").toLowerCase()) {
-          connect().catch(() => {});
-        }
+        attachWallet(eip, accs[0]).catch(() => {});
       });
       eip?.on?.("chainChanged", () => {
         if (addr) refresh().catch(() => {});
