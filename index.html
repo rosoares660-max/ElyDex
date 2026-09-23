@@ -230,8 +230,8 @@
         <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
         <button class="go" id="btnFaucet">CLAIM TOKENS</button>
       </div>
-      <div id="account" class="sub" style="margin-top:12px;"></div>
-      <div id="log"></div>
+      <div id="account" class="hidden"></div>
+      <div id="log" class="hidden"></div>
       <button id="btnRefresh" class="hidden">Refresh</button>
       <button id="btnQuote" class="hidden">quote</button>
       <select id="tokenIn" class="hidden"><option value="A" selected>A</option><option value="B">B</option></select>
@@ -315,7 +315,14 @@
     }
 
     function log(msg, ok) {
-      $("log").innerHTML = `<div class="${ok ? "ok" : "err"}">${msg}</div>`;
+      const el = $("log");
+      if (ok) {
+        el.classList.add("hidden");
+        el.innerHTML = "";
+        return;
+      }
+      el.classList.remove("hidden");
+      el.innerHTML = `<div class="err">${msg}</div>`;
     }
 
     function show(id) {
@@ -417,7 +424,7 @@
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
         addr = await signer.getAddress();
-        $("account").innerText = addr;
+        $("account").innerText = "";
         $("btnConnect").innerText = addr.slice(0,6) + "..." + addr.slice(-4);
         $("btnConnect").dataset.prev = $("btnConnect").innerText;
         updateSwapLabel();
