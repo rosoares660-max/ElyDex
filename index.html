@@ -35,8 +35,13 @@
       border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 800; cursor: pointer;
     }
     .connect-sm { background: #fff; color: #111; }
-    .check-sm { background: #2a2414; color: var(--gold); border: 1px solid #4a3b16; }
-    .connect-sm:disabled, .check-sm:disabled, .go:disabled, .flip:disabled {
+    .check-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .check-sm { background: linear-gradient(180deg, #3a2f12, #2a2414); color: var(--gold); border: 1px solid #4a3b16; min-width: 108px; }
+    .check-sm.ready { box-shadow: 0 0 0 1px #5a4a1a inset, 0 0 12px rgba(224,180,58,.18); }
+    .check-sm.done { background: #16171b; color: #8b8f98; border-color: var(--line); box-shadow: none; }
+    .check-hint { font-size: 10px; color: var(--gold); font-weight: 700; letter-spacing: .02em; }
+    .check-hint.muted { color: var(--muted); }
+    .connect-sm:disabled, .check-sm:disabled, .go:disabled, .flip:disabled, .max-btn:disabled {
       opacity: .55; cursor: not-allowed;
     }
     main { display: flex; justify-content: center; padding: 40px 16px 80px; }
@@ -80,6 +85,20 @@
     .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
     .sub { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
     input.plain, select.plain { width: 100%; padding: 11px; margin: 6px 0; border-radius: 12px; border: 1px solid var(--line); background: #0f1013; color: #fff; }
+    .liq-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 6px 6px 2px; }
+    .liq-title { margin: 0; font-size: 16px; font-weight: 800; }
+    .steps { display: flex; gap: 6px; }
+    .step {
+      font-size: 11px; font-weight: 800; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 999px; padding: 4px 8px;
+    }
+    .step.on { color: #111; background: var(--green); border-color: var(--green); }
+    .step.ok { color: var(--green); border-color: #3a4a22; }
+    .max-btn {
+      background: #1d1f24; border: 1px solid #32343a; color: var(--green);
+      border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; cursor: pointer;
+    }
+    .liq-note { color: var(--muted); font-size: 12px; padding: 4px 6px 0; }
     .socials { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 20; }
     .soc {
       position: relative;
@@ -115,8 +134,11 @@
       </div>
     </div>
     <div class="right">
-      <div class="chip">● <span id="ptsLabel">0</span> ElyPoints</div>
-      <button class="check-sm" id="btnCheckIn">Check-in</button>
+      <div class="chip" title="Points from check-in and swaps">● <span id="ptsLabel">0</span> ElyPoints</div>
+      <div class="check-wrap">
+        <button class="check-sm ready" id="btnCheckIn">+50 Check-in</button>
+        <span class="check-hint" id="checkHint">Ready · once a day</span>
+      </div>
       <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
   </header>
@@ -162,11 +184,47 @@
         <span id="poolSpcx" class="hidden"></span>
       </div>
       <div id="viewLiq" class="swap-card hidden">
-        <p class="sub">Deposit both tokens into the pool. Approve once, then add liquidity.</p>
-        <input class="plain" id="liqA" placeholder="KIT amount (e.g. 100)" inputmode="decimal" />
-        <input class="plain" id="liqB" placeholder="SPCX amount (e.g. 100)" inputmode="decimal" />
-        <button class="go" id="btnApprove">APPROVE TOKENS</button>
-        <button class="go secondary" id="btnLiq" style="margin-top:8px;">ADD LIQUIDITY</button>
+        <div class="liq-head">
+          <p class="liq-title">Add liquidity</p>
+          <div class="steps">
+            <span class="step on" id="step1">1. Approve</span>
+            <span class="step" id="step2">2. Deposit</span>
+          </div>
+        </div>
+        <p class="sub">Deposit KIT and SPCX in the pool ratio. Approve once, then add.</p>
+        <div class="leg">
+          <div class="leg-top">
+            <span>KIT</span>
+            <span>
+              <button class="bal-btn" id="liqBalABtn" type="button">Balance: <span id="liqBalA">0</span></button>
+              <button class="max-btn" id="liqMaxA" type="button">MAX</button>
+            </span>
+          </div>
+          <div class="leg-row">
+            <div class="token"><div class="dot kit">K</div> KIT</div>
+            <input class="amt" id="liqA" placeholder="0" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="leg">
+          <div class="leg-top">
+            <span>SPCX</span>
+            <span>
+              <button class="bal-btn" id="liqBalBBtn" type="button">Balance: <span id="liqBalB">0</span></button>
+              <button class="max-btn" id="liqMaxB" type="button">MAX</button>
+            </span>
+          </div>
+          <div class="leg-row">
+            <div class="token"><div class="dot spcx">S</div> SPCX</div>
+            <input class="amt" id="liqB" placeholder="0" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="meta">
+          <span id="liqPoolLabel">Pool: —</span>
+          <span id="liqRatioLabel">Ratio: —</span>
+        </div>
+        <p class="liq-note" id="liqHint">Enter one amount — the other follows the pool ratio.</p>
+        <button class="go" id="btnApprove">1. APPROVE TOKENS</button>
+        <button class="go secondary" id="btnLiq" style="margin-top:8px;">2. ADD LIQUIDITY</button>
       </div>
       <div id="viewFaucet" class="swap-card hidden">
         <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
@@ -220,6 +278,7 @@
     ];
     let provider, signer, addr, kitToSpcx = true, busy = false;
     let balKit = 0n, balSpcx = 0n, lastOut = 0n, slipPct = 1;
+    let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
 
     const $ = (id) => document.getElementById(id);
 
@@ -391,13 +450,87 @@
       const [a, b, ra, rb, p] = await Promise.all([
         kit.balanceOf(addr), spcx.balanceOf(addr), amm.reserveA(), amm.reserveB(), pts.points(addr)
       ]);
-      balKit = a; balSpcx = b;
+      balKit = a; balSpcx = b; resA = ra; resB = rb;
       $("balSell").innerText = kitToSpcx ? short(a) : short(b);
       $("balBuy").innerText = kitToSpcx ? short(b) : short(a);
       $("poolKit").innerText = "Pool " + short(ra);
       $("poolSpcx").innerText = "Pool " + short(rb);
       $("poolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
+      $("liqPoolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
+      $("liqBalA").innerText = short(a);
+      $("liqBalB").innerText = short(b);
       $("ptsLabel").innerText = p.toString();
+      updateLiqRatio();
+      await updateCheckInStatus();
+    }
+
+    function fmtLeft(sec) {
+      sec = Math.max(0, Number(sec));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      if (h > 0) return h + "h " + m + "m";
+      if (m > 0) return m + " min";
+      return sec + "s";
+    }
+
+    async function updateCheckInStatus() {
+      const btn = $("btnCheckIn");
+      const hint = $("checkHint");
+      if (!signer) {
+        btn.className = "check-sm ready";
+        btn.innerText = "+50 Check-in";
+        hint.className = "check-hint";
+        hint.innerText = "Connect wallet first";
+        return;
+      }
+      try {
+        const { pts } = contracts();
+        const [last, cd] = await Promise.all([pts.lastCheckIn(addr), pts.checkInCooldown()]);
+        const agora = BigInt(Math.floor(Date.now() / 1000));
+        if (last > 0n && agora < last + cd) {
+          btn.className = "check-sm done";
+          btn.innerText = "Checked in";
+          hint.className = "check-hint muted";
+          hint.innerText = "Next in " + fmtLeft(Number(last + cd - agora));
+        } else {
+          btn.className = "check-sm ready";
+          btn.innerText = "+50 Check-in";
+          hint.className = "check-hint";
+          hint.innerText = "Ready · +50 points";
+        }
+      } catch (_) {}
+    }
+
+    function updateLiqRatio() {
+      if (resA === 0n || resB === 0n) {
+        $("liqRatioLabel").innerText = "Ratio: empty pool";
+        return;
+      }
+      const r = Number(resB) / Number(resA);
+      $("liqRatioLabel").innerText = "1 KIT ≈ " + r.toLocaleString("en-US", { maximumFractionDigits: 4 }) + " SPCX";
+    }
+
+    function pairFromA() {
+      if (pairing || resA === 0n || resB === 0n) return;
+      const v = $("liqA").value.trim();
+      if (!v) { $("liqB").value = ""; return; }
+      try {
+        pairing = true;
+        const a = ethers.parseEther(v);
+        $("liqB").value = ethers.formatEther(a * resB / resA);
+      } catch (_) {}
+      pairing = false;
+    }
+    function pairFromB() {
+      if (pairing || resA === 0n || resB === 0n) return;
+      const v = $("liqB").value.trim();
+      if (!v) { $("liqA").value = ""; return; }
+      try {
+        pairing = true;
+        const b = ethers.parseEther(v);
+        $("liqA").value = ethers.formatEther(b * resA / resB);
+      } catch (_) {}
+      pairing = false;
     }
 
     async function quote() {
@@ -467,21 +600,23 @@
       const cd = await pts.checkInCooldown();
       const agora = BigInt(Math.floor(Date.now() / 1000));
       if (last > 0n && agora < last + cd) {
-        alert("Check-in is only available once per day.");
-        log("Already checked in today", false);
+        const left = fmtLeft(Number(last + cd - agora));
+        alert("Already checked in. Next in " + left + ".");
+        log("Already checked in today. Next in " + left, false);
+        await updateCheckInStatus();
         return;
       }
-      setBusy(true, $("btnCheckIn"), "Checking in...");
+      setBusy(true, $("btnCheckIn"), "Confirm...");
       try {
-        log("Checking in...", true);
+        log("Checking in for +50 ElyPoints...", true);
         const tx = await pts.checkIn();
-        $("btnCheckIn").innerHTML = `<span class="spin"></span>...`;
+        $("btnCheckIn").innerHTML = `<span class="spin"></span>+50`;
         await tx.wait();
         await refresh();
-        log("Check-in ok: +50 points", true);
+        log("Check-in ok: +50 ElyPoints", true);
       } finally {
-        setBusy(false, $("btnCheckIn"), "Check-in");
-        $("btnCheckIn").innerText = "Check-in";
+        setBusy(false);
+        await updateCheckInStatus();
       }
     }
 
@@ -497,7 +632,7 @@
         }
         log(msg, false);
         setBusy(false);
-        $("btnCheckIn").innerText = "Check-in";
+        updateCheckInStatus().catch(() => {});
       });
     $("btnRefresh").onclick = () => refresh().catch((e) => log(friendlyError(e), false));
     $("btnQuote").onclick = () => quote().catch((e) => log(friendlyError(e), false));
@@ -513,11 +648,14 @@
         $("btnApprove").innerHTML = `<span class="spin"></span>Approving SPCX...`;
         log("Approving SPCX...", true);
         await (await spcx.approve(AMM, ethers.MaxUint256)).wait();
+        approvedLiq = true;
+        $("step1").className = "step ok";
+        $("step2").className = "step on";
         log("Tokens approved. You can add liquidity now.", true);
       } catch (e) { log(friendlyError(e), false); }
       finally {
-        setBusy(false, $("btnApprove"), "APPROVE TOKENS");
-        $("btnApprove").innerText = "APPROVE TOKENS";
+        setBusy(false, $("btnApprove"), "1. APPROVE TOKENS");
+        $("btnApprove").innerText = "1. APPROVE TOKENS";
       }
     };
 
@@ -534,13 +672,31 @@
         $("btnLiq").innerHTML = `<span class="spin"></span>Waiting for tx...`;
         await tx.wait();
         await refresh();
+        $("liqA").value = "";
+        $("liqB").value = "";
         log("Liquidity added", true);
       } catch (e) { log(friendlyError(e), false); }
       finally {
-        setBusy(false, $("btnLiq"), "ADD LIQUIDITY");
-        $("btnLiq").innerText = "ADD LIQUIDITY";
+        setBusy(false, $("btnLiq"), "2. ADD LIQUIDITY");
+        $("btnLiq").innerText = "2. ADD LIQUIDITY";
       }
     };
+
+    $("liqA").addEventListener("input", pairFromA);
+    $("liqB").addEventListener("input", pairFromB);
+    function fillLiqMax(which) {
+      if (which === "A") {
+        $("liqA").value = ethers.formatEther(balKit);
+        pairFromA();
+      } else {
+        $("liqB").value = ethers.formatEther(balSpcx);
+        pairFromB();
+      }
+    }
+    $("liqMaxA").onclick = () => fillLiqMax("A");
+    $("liqMaxB").onclick = () => fillLiqMax("B");
+    $("liqBalABtn").onclick = () => fillLiqMax("A");
+    $("liqBalBBtn").onclick = () => fillLiqMax("B");
 
     $("btnSwap").onclick = async () => {
       try {
