@@ -279,6 +279,7 @@
     let provider, signer, addr, kitToSpcx = true, busy = false;
     let balKit = 0n, balSpcx = 0n, lastOut = 0n, slipPct = 1;
     let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
+    let checkNextAt = 0, checkTimer = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -541,9 +542,23 @@
       };
     }
 
+    function toNum(n) {
+      try { return Number(ethers.formatEther(n)); } catch (_) { return 0; }
+    }
     function short(n) {
-      const x = Number(ethers.formatEther(n));
-      return x.toLocaleString("en-US", { maximumFractionDigits: 4 });
+      const x = typeof n === "number" ? n : toNum(n);
+      if (!Number.isFinite(x) || x === 0) return "0";
+      const abs = Math.abs(x);
+      const fmt = (v, d) => v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: 0 });
+      if (abs >= 1e9) return fmt(x / 1e9, 2) + "B";
+      if (abs >= 1e6) return fmt(x / 1e6, 2) + "M";
+      if (abs >= 1e3) return fmt(x / 1e3, 2) + "K";
+      if (abs >= 1) return fmt(x, 2);
+      if (abs >= 0.0001) return fmt(x, 4);
+      return "<0.0001";
+    }
+    function full(n) {
+      return toNum(n).toLocaleString("en-US", { maximumFractionDigits: 6 });
     }
 
     async function refresh() {
@@ -559,13 +574,19 @@
       ]);
       balKit = a; balSpcx = b; resA = ra; resB = rb;
       $("balSell").innerText = kitToSpcx ? short(a) : short(b);
+      $("balSell").title = kitToSpcx ? full(a) : full(b);
       $("balBuy").innerText = kitToSpcx ? short(b) : short(a);
+      $("balBuy").title = kitToSpcx ? full(b) : full(a);
       $("poolKit").innerText = "Pool " + short(ra);
       $("poolSpcx").innerText = "Pool " + short(rb);
       $("poolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
+      $("poolLabel").title = full(ra) + " KIT / " + full(rb) + " SPCX";
       $("liqPoolLabel").innerText = "Pool: " + short(ra) + " KIT / " + short(rb) + " SPCX";
+      $("liqPoolLabel").title = full(ra) + " KIT / " + full(rb) + " SPCX";
       $("liqBalA").innerText = short(a);
+      $("liqBalA").title = full(a);
       $("liqBalB").innerText = short(b);
+      $("liqBalB").title = full(b);
       $("ptsLabel").innerText = p.toString();
       updateLiqRatio();
       await updateCheckInStatus().catch(() => {});
@@ -580,32 +601,56 @@
       return sec + "s";
     }
 
-    async function updateCheckInStatus() {
+    function paintCheckIn() {
       const btn = $("btnCheckIn");
       const hint = $("checkHint");
+      const now = Math.floor(Date.now() / 1000);
+      if (checkNextAt && now < checkNextAt) {
+        btn.className = "check-sm done";
+        btn.innerText = fmtLeft(checkNextAt - now);
+        btn.disabled = true;
+        hint.style.display = "none";
+        return true;
+      }
+      btn.className = "check-sm ready";
+      btn.innerText = "+50 Check-in";
+      btn.disabled = busy;
+      hint.style.display = "";
+      hint.className = "check-hint";
+      hint.innerText = signer ? "Ready · +50 points" : "Connect wallet first";
+      return false;
+    }
+
+    function startCheckClock() {
+      if (checkTimer) clearInterval(checkTimer);
+      paintCheckIn();
+      checkTimer = setInterval(() => {
+        if (!paintCheckIn()) {
+          clearInterval(checkTimer);
+          checkTimer = null;
+        }
+      }, 1000);
+    }
+
+    async function updateCheckInStatus() {
       if (!signer) {
-        btn.className = "check-sm ready";
-        btn.innerText = "+50 Check-in";
-        hint.className = "check-hint";
-        hint.innerText = "Connect wallet first";
+        checkNextAt = 0;
+        paintCheckIn();
         return;
       }
       try {
         const { pts } = contracts();
         const [last, cd] = await Promise.all([pts.lastCheckIn(addr), pts.checkInCooldown()]);
-        const agora = BigInt(Math.floor(Date.now() / 1000));
-        if (last > 0n && agora < last + cd) {
-          btn.className = "check-sm done";
-          btn.innerText = "Checked in";
-          hint.className = "check-hint muted";
-          hint.innerText = "Next in " + fmtLeft(Number(last + cd - agora));
+        const agora = Math.floor(Date.now() / 1000);
+        if (last > 0n && agora < Number(last + cd)) {
+          checkNextAt = Number(last + cd);
         } else {
-          btn.className = "check-sm ready";
-          btn.innerText = "+50 Check-in";
-          hint.className = "check-hint";
-          hint.innerText = "Ready · +50 points";
+          checkNextAt = 0;
         }
-      } catch (_) {}
+        startCheckClock();
+      } catch (_) {
+        paintCheckIn();
+      }
     }
 
     function updateLiqRatio() {
@@ -654,7 +699,8 @@
       const rb = await amm.reserveB();
       const out = await amm.getAmountOut(amountIn, kitToSpcx ? ra : rb, kitToSpcx ? rb : ra);
       lastOut = out;
-      $("amountOut").value = ethers.formatEther(out);
+      const outN = Number(ethers.formatEther(out));
+      $("amountOut").value = outN >= 1000 ? outN.toFixed(2) : outN >= 1 ? outN.toFixed(4) : outN.toFixed(6);
       updateMinOut();
       return out;
     }
