@@ -325,7 +325,8 @@
       "function awardSwap()"
     ];
     let provider, signer, addr, sellId = "KIT", buyId = "SPCX", busy = false;
-    let bals = { KIT: 0n, SPCX: 0n, HYPE: 0n }, nativeHype = 0n;
+    let bals = { KIT: 0n, SPCX: 0n, HYPE: 0n }, nativeHype = 0n, wrappedHype = 0n;
+    const HYPE_GAS_KEEP = 20000000000000000n; // 0.02 HYPE for gas
     let lastOut = 0n, slipPct = 1;
     let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
     let checkNextAt = 0, checkTimer = null;
@@ -705,7 +706,10 @@
         safe(liqAmm.reserveB()),
         safe(pts.points(addr))
       ]);
-      bals.KIT = a; bals.SPCX = b; bals.HYPE = h; nativeHype = nat;
+      bals.KIT = a; bals.SPCX = b;
+      wrappedHype = h; nativeHype = nat;
+      const extra = nat > HYPE_GAS_KEEP ? nat - HYPE_GAS_KEEP : 0n;
+      bals.HYPE = h + extra;
       resA = lra; resB = lrb;
       syncDir();
       $("balSell").title = full(bals[sellId]);
@@ -953,12 +957,15 @@
     };
 
     async function ensureWhype(need) {
-      if ((bals.HYPE || 0n) >= need) return;
-      const miss = need - (bals.HYPE || 0n);
-      if (nativeHype <= miss) throw new Error("Not enough HYPE. Wrap more HYPE first.");
+      if ((wrappedHype || 0n) >= need) return;
+      const miss = need - (wrappedHype || 0n);
+      if (nativeHype <= miss + HYPE_GAS_KEEP / 4n) {
+        throw new Error("Not enough native HYPE to wrap (keep some for gas).");
+      }
       const whype = tokenContract("HYPE");
       await waitTx(await whype.deposit({ value: miss }));
-      bals.HYPE += miss;
+      wrappedHype += miss;
+      bals.HYPE = wrappedHype + (nativeHype > miss ? nativeHype - miss : 0n);
     }
 
     $("btnLiq").onclick = async () => {
