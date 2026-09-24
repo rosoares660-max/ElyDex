@@ -173,6 +173,9 @@
     }
     .toast-title { font-weight: 800; font-size: 14px; }
     .toast-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .nft-art { width: 100%; border-radius: 16px; display: block; border: 1px solid var(--line); }
+    .nft-title { margin: 12px 6px 4px; font-size: 18px; font-weight: 800; }
+    .nft-price { color: var(--gold); font-weight: 800; }
     .go.ok-flash { background: #b9ff7a; }
   </style>
 </head>
@@ -183,6 +186,7 @@
       <div class="nav">
         <button class="on" id="tabSwap">Swap</button>
         <button id="tabLiq">Liquidity</button>
+        <button id="tabNft">NFT</button>
         <button id="tabFaucet">Faucet</button>
       </div>
     </div>
@@ -302,6 +306,12 @@
           <div id="posList"></div>
         </div>
       </div>
+      <div id="viewNft" class="swap-card hidden">
+        <img class="nft-art" src="guardian-of-elysium.jpg" alt="Guardian of Elysium" />
+        <p class="nft-title">Guardian of Elysium</p>
+        <p class="sub">Open edition · <span class="nft-price">0.1 HYPE</span> · same art for every mint</p>
+        <button class="go" id="btnMintNft">MINT NFT</button>
+      </div>
       <div id="viewFaucet" class="swap-card hidden">
         <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
         <button class="go" id="btnFaucet">CLAIM TOKENS</button>
@@ -409,7 +419,7 @@
         btn.innerHTML = on ? `<span class="spin"></span>${label}` : (btn.dataset.prev || label);
         if (!on) btn.dataset.prev = "";
       } else if (!on) {
-        ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn"].forEach((id) => {
+        ["btnSwap","btnApprove","btnLiq","btnFaucet","btnCheckIn","btnMintNft"].forEach((id) => {
           const el = $(id);
           if (el && el.dataset.prev) { el.innerHTML = el.dataset.prev; el.dataset.prev = ""; }
         });
@@ -454,16 +464,18 @@
     }
 
     function show(id) {
-      ["viewSwap","viewLiq","viewFaucet"].forEach((v) =>
+      ["viewSwap","viewLiq","viewNft","viewFaucet"].forEach((v) =>
         $(v).classList.toggle("hidden", v !== id)
       );
       $("tabSwap").classList.toggle("on", id === "viewSwap");
       $("tabLiq").classList.toggle("on", id === "viewLiq");
+      $("tabNft").classList.toggle("on", id === "viewNft");
       $("tabFaucet").classList.toggle("on", id === "viewFaucet");
     }
 
     $("tabSwap").onclick = () => show("viewSwap");
     $("tabLiq").onclick = () => { show("viewLiq"); loadPositions().catch(() => {}); };
+    $("tabNft").onclick = () => show("viewNft");
     $("tabFaucet").onclick = () => show("viewFaucet");
     $("tabAddLiq").onclick = () => {
       $("tabAddLiq").classList.add("on");
@@ -1195,6 +1207,31 @@
         } else {
           updateSwapLabel();
         }
+      }
+    };
+
+
+    const NFT = {
+      addr: "0x9016f1688C286C677FADF12FCe2395605481CCD8",
+      price: ethers.parseEther("0.1"),
+      abi: ["function mint(uint256 amount) payable"]
+    };
+
+    $("btnMintNft").onclick = async () => {
+      try {
+        if (!signer) { await connect(); }
+        setBusy(true, $("btnMintNft"), "Confirm in wallet...");
+        const nft = new ethers.Contract(NFT.addr, NFT.abi, signer);
+        const tx = await nft.mint(1, { value: NFT.price });
+        $("btnMintNft").innerHTML = `<span class="spin"></span>Waiting for tx...`;
+        await waitTx(tx);
+        showToast("Mint complete", "Guardian of Elysium · 0.1 HYPE");
+        log("NFT minted", true);
+      } catch (e) {
+        log(friendlyError(e), false);
+      } finally {
+        setBusy(false, $("btnMintNft"), "MINT NFT");
+        $("btnMintNft").innerText = "MINT NFT";
       }
     };
 
