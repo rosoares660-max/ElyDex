@@ -313,8 +313,13 @@
         <button class="go" id="btnMintNft">MINT NFT</button>
       </div>
       <div id="viewFaucet" class="swap-card hidden">
+        <p class="liq-title" style="padding:6px 6px 0;">KIT / SPCX</p>
         <p class="sub">Claim 10 KIT + 10 SPCX once per hour. You need a little HYPE for gas.</p>
         <button class="go" id="btnFaucet">CLAIM TOKENS</button>
+        <p class="liq-title" style="padding:16px 6px 0;">Testnet HYPE</p>
+        <p class="sub">Official faucets send HYPE to HyperEVM. Then bridge 1:1 to Elysium for gas and NFT mint.</p>
+        <button class="go secondary" id="btnHypeFaucet" type="button">1. GET HYPE (QUICKNODE)</button>
+        <button class="go" id="btnHypeBridge" type="button" style="margin-top:8px;">2. BRIDGE TO ELYSIUM</button>
       </div>
       <div id="account" class="hidden"></div>
       <div id="log" class="hidden"></div>
@@ -1235,6 +1240,13 @@
       }
     };
 
+
+    $("btnHypeFaucet").onclick = () => {
+      window.open("https://faucet.quicknode.com/hyperliquid", "_blank", "noopener");
+    };
+    $("btnHypeBridge").onclick = () => {
+      window.open("https://elysium.kinetiq.xyz/testnet-bridge", "_blank", "noopener");
+    };
     restoreWallet().catch(() => {});
     {
       const eip = eth();
