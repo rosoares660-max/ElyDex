@@ -39,8 +39,21 @@
     .check-sm { background: linear-gradient(180deg, #3a2f12, #2a2414); color: var(--gold); border: 1px solid #4a3b16; min-width: 108px; }
     .check-sm.ready { box-shadow: 0 0 0 1px #5a4a1a inset, 0 0 12px rgba(224,180,58,.18); }
     .check-sm.done { background: #16171b; color: #8b8f98; border-color: var(--line); box-shadow: none; }
-    .check-hint { font-size: 10px; color: var(--gold); font-weight: 700; letter-spacing: .02em; }
-    .check-hint.muted { color: var(--muted); }
+    .check-hint { display: none; }
+    .badge-btn {
+      position: relative;
+      background: #1a160c; border: 1px solid #4a3b16; color: var(--gold);
+      border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 14px; cursor: pointer;
+    }
+    .badge-btn::after {
+      content: "Soon";
+      position: absolute; left: 50%; bottom: calc(100% + 8px);
+      transform: translateX(-50%) translateY(4px);
+      background: #fff; color: #111; font-size: 11px; font-weight: 800;
+      padding: 4px 8px; border-radius: 8px; white-space: nowrap;
+      opacity: 0; pointer-events: none;
+    }
+    .badge-btn:hover::after, .badge-btn:focus::after { opacity: 1; transform: translateX(-50%) translateY(0); }
     .connect-sm:disabled, .check-sm:disabled, .go:disabled, .flip:disabled, .max-btn:disabled {
       opacity: .55; cursor: not-allowed;
     }
@@ -191,10 +204,10 @@
       </div>
     </div>
     <div class="right">
+      <button class="badge-btn" id="btnBadges" type="button">Badges</button>
       <div class="chip" title="Points from check-in and swaps">● <span id="ptsLabel">0</span> ElyPoints</div>
       <div class="check-wrap">
         <button class="check-sm ready" id="btnCheckIn">+50 Check-in</button>
-        <span class="check-hint" id="checkHint">Ready · once a day</span>
       </div>
       <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
@@ -841,21 +854,16 @@
 
     function paintCheckIn() {
       const btn = $("btnCheckIn");
-      const hint = $("checkHint");
       const now = Math.floor(Date.now() / 1000);
       if (checkNextAt && now < checkNextAt) {
         btn.className = "check-sm done";
         btn.innerText = fmtLeft(checkNextAt - now);
         btn.disabled = true;
-        hint.style.display = "none";
         return true;
       }
       btn.className = "check-sm ready";
       btn.innerText = "+50 Check-in";
       btn.disabled = busy;
-      hint.style.display = "";
-      hint.className = "check-hint";
-      hint.innerText = signer ? "Ready · +50 points" : "Connect wallet first";
       return false;
     }
 
@@ -1216,6 +1224,7 @@
     };
 
 
+
     const NFT = {
       addr: "0x9016f1688C286C677FADF12FCe2395605481CCD8",
       price: ethers.parseEther("0.1"),
@@ -1247,6 +1256,8 @@
     $("btnHypeBridge").onclick = () => {
       window.open("https://elysium.kinetiq.xyz/testnet-bridge", "_blank", "noopener");
     };
+
+    $("btnBadges").onclick = () => {};
     restoreWallet().catch(() => {});
     {
       const eip = eth();
