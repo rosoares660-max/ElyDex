@@ -344,14 +344,14 @@
       <div class="mission" id="missionFollow">
         <div>
           <b>Follow @ElyDex_hl</b>
-          <span>Open X and follow the official account</span>
+          <span>Open X and follow · +1,000 ElyPoints</span>
         </div>
         <button class="go" id="btnFollowX" type="button" style="width:auto;margin:0;padding:10px 14px;">Follow</button>
       </div>
       <div class="mission" id="missionShare" style="margin-top:8px;">
         <div>
           <b>Like &amp; share the post</b>
-          <span>Open the official post on X</span>
+          <span>Like & share the post · +1,000 ElyPoints</span>
         </div>
         <button class="go" id="btnShareX" type="button" style="width:auto;margin:0;padding:10px 14px;">Open</button>
       </div>
@@ -530,6 +530,7 @@
     }
     const FAUCET = "0x5D05dEf10B7d5365CA8ede46Ff35E5a4046A9013";
     const POINTS = "0xA427d47B434e562fCd864725594CCe0796Ecfe20";
+    const MISSIONS = "0x22dca5E400Fd416188D71fB61aC5eB0c1e135fC0";
     const tokenAbi = [
       "function approve(address spender, uint256 value) returns (bool)",
       "function balanceOf(address) view returns (uint256)",
@@ -558,12 +559,17 @@
       "function checkIn()",
       "function awardSwap()"
     ];
+    const missionsAbi = [
+      "function claim(uint8 mission)",
+      "function bonusOf(address user) view returns (uint256)",
+      "function done(address user, uint8 mission) view returns (bool)"
+    ];
     let provider, signer, addr, sellId = "HYPE", buyId = "KIT", busy = false;
     let bals = { KIT: 0n, SPCX: 0n, HYPE: 0n }, nativeHype = 0n, wrappedHype = 0n;
     const HYPE_GAS_KEEP = 20000000000000000n; // 0.02 HYPE for gas
     let lastOut = 0n, slipPct = 1;
     let resA = 0n, resB = 0n, approvedLiq = false, pairing = false;
-    let checkNextAt = 0, checkTimer = null;
+    let checkNextAt = 0, checkTimer = null, chainPts = 0n;
 
     const $ = (id) => document.getElementById(id);
 
@@ -985,7 +991,14 @@
       $("liqBalA").title = full(bals[lp.a]);
       $("liqBalB").innerText = short(bals[lp.b]);
       $("liqBalB").title = full(bals[lp.b]);
-      $("ptsLabel").innerText = p.toString();
+      chainPts = p;
+      if (missionsOn() && signer) {
+        try {
+          const m = new ethers.Contract(MISSIONS, missionsAbi, provider);
+          missionPts = Number(await m.bonusOf(addr));
+        } catch (_) {}
+      }
+      paintPts();
       updateLiqRatio();
       await updateCheckInStatus().catch(() => {});
     }
@@ -1457,6 +1470,16 @@
     $("missionsModal").onclick = (e) => {
       if (e.target.id === "missionsModal") $("missionsModal").classList.remove("open");
     };
+    let missionPts = 0;
+    function missionsOn() {
+      return MISSIONS && MISSIONS !== "0x22dca5E400Fd416188D71fB61aC5eB0c1e135fC0";
+    }
+    function missionBonus() { return missionPts; }
+    function paintPts() {
+      const el = $("ptsLabel");
+      if (!el) return;
+      el.innerText = (Number(chainPts) + missionBonus()).toString();
+    }
     function paintMissions() {
       const f = localStorage.getItem("elydex.mission.follow") === "1";
       const sh = localStorage.getItem("elydex.mission.share") === "1";
@@ -1465,15 +1488,35 @@
       $("btnShareX").innerText = sh ? "Done" : "Open";
       $("missionShare").classList.toggle("done", sh);
     }
-    $("btnFollowX").onclick = () => {
+    async function claimMission(id, key, title) {
+      if (!signer) await connect();
+      if (missionsOn()) {
+        const m = new ethers.Contract(MISSIONS, missionsAbi, signer);
+        const already = await m.done(addr, id);
+        if (!already) {
+          const tx = await m.claim(id);
+          await waitTx(tx);
+          missionPts = Number(await m.bonusOf(addr));
+        } else {
+          missionPts = Number(await m.bonusOf(addr));
+        }
+      } else if (localStorage.getItem(key) !== "1") {
+        missionPts += 1000;
+      }
+      localStorage.setItem(key, "1");
+      paintMissions();
+      paintPts();
+      showToast("+1,000 ElyPoints", title);
+    }
+    $("btnFollowX").onclick = async () => {
       window.open("https://x.com/ElyDex_hl", "_blank", "noopener");
-      localStorage.setItem("elydex.mission.follow", "1");
-      paintMissions();
+      try { await claimMission(0, "elydex.mission.follow", "Mission: follow @ElyDex_hl"); }
+      catch (e) { log(friendlyError(e), false); }
     };
-    $("btnShareX").onclick = () => {
+    $("btnShareX").onclick = async () => {
       window.open("https://x.com/Elydex_hl/status/2103194129744183424", "_blank", "noopener");
-      localStorage.setItem("elydex.mission.share", "1");
-      paintMissions();
+      try { await claimMission(1, "elydex.mission.share", "Mission: like & share"); }
+      catch (e) { log(friendlyError(e), false); }
     };
     $("btnLeaderboard").onclick = (e) => {
       e.stopPropagation();
@@ -1485,6 +1528,7 @@
       setTimeout(() => { t.innerText = prev; t.dataset.soon = ""; }, 900);
     };
     paintMissions();
+    paintPts();
     restoreWallet().catch(() => {});
     {
       const eip = eth();
