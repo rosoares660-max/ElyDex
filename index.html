@@ -247,7 +247,8 @@
     }
 
     .pts-wrap { position: relative; }
-    .chip { cursor: pointer; }
+    .chip { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .chip .caret-i { display: inline-block; border-top-color: currentColor; }
     .pts-menu {
       display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 35;
       min-width: 180px; background: #12141d; border: 1px solid var(--line);
@@ -276,7 +277,11 @@
     }
     .mission b { display: block; }
     .mission span { color: var(--muted); font-size: 12px; }
-    .mission.done { border-color: rgba(94,200,255,.35); }
+    .mission.done { border-color: rgba(61,206,106,.45); }
+    .mission.done .go {
+      background: #3dce6a;
+      color: #06210e;
+    }
     .go.ok-flash { background: #9ae4ff; }
   </style>
 </head>
@@ -303,9 +308,10 @@
       <div class="acct-wrap">
         <div class="acct-menu" id="acctMenu">
           <div class="pts-wrap">
-            <button class="chip" id="btnPoints" type="button">● <span id="ptsLabel">0</span> ElyPoints</button>
+            <button class="chip" id="btnPoints" type="button">● <span id="ptsLabel">0</span> ElyPoints <i class="caret-i"></i></button>
             <div class="pts-menu" id="ptsMenu">
-              <button class="pts-item pts-soon" id="btnBadges" type="button">Badges</button>
+              <button class="pts-item" id="btnLeaderboard" type="button">Leaderboard</button>
+              <button class="pts-item" id="btnBadges" type="button">Badges</button>
               <button class="pts-item" id="btnMissions" type="button">Missions</button>
             </div>
           </div>
@@ -331,6 +337,13 @@
           <span>Open X and follow the official account</span>
         </div>
         <button class="go" id="btnFollowX" type="button" style="width:auto;margin:0;padding:10px 14px;">Follow</button>
+      </div>
+      <div class="mission" id="missionShare" style="margin-top:8px;">
+        <div>
+          <b>Like &amp; share the post</b>
+          <span>Open the official post on X</span>
+        </div>
+        <button class="go" id="btnShareX" type="button" style="width:auto;margin:0;padding:10px 14px;">Open</button>
       </div>
     </div>
   </div>
@@ -1426,22 +1439,40 @@
       e.stopPropagation();
       $("ptsMenu").classList.remove("open");
       $("missionsModal").classList.add("open");
-      paintFollow();
+      paintMissions();
     };
     $("btnCloseMissions").onclick = () => $("missionsModal").classList.remove("open");
     $("missionsModal").onclick = (e) => {
       if (e.target.id === "missionsModal") $("missionsModal").classList.remove("open");
     };
-    function paintFollow() {
-      const done = localStorage.getItem("elydex.mission.follow") === "1";
-      $("missionFollow").classList.toggle("done", done);
-      $("btnFollowX").innerText = done ? "Done" : "Follow";
+    function paintMissions() {
+      const f = localStorage.getItem("elydex.mission.follow") === "1";
+      const sh = localStorage.getItem("elydex.mission.share") === "1";
+      $("missionFollow").classList.toggle("done", f);
+      $("btnFollowX").innerText = f ? "Feita" : "Follow";
+      $("btnShareX").innerText = sh ? "Feita" : "Open";
+      $("missionShare").classList.toggle("done", sh);
     }
     $("btnFollowX").onclick = () => {
       window.open("https://x.com/ElyDex_hl", "_blank", "noopener");
       localStorage.setItem("elydex.mission.follow", "1");
-      paintFollow();
+      paintMissions();
     };
+    $("btnShareX").onclick = () => {
+      window.open("https://x.com/Elydex_hl/status/2103194129744183424", "_blank", "noopener");
+      localStorage.setItem("elydex.mission.share", "1");
+      paintMissions();
+    };
+    $("btnLeaderboard").onclick = (e) => {
+      e.stopPropagation();
+      const t = e.currentTarget;
+      if (t.dataset.soon === "1") return;
+      t.dataset.soon = "1";
+      const prev = t.innerText;
+      t.innerText = "Soon";
+      setTimeout(() => { t.innerText = prev; t.dataset.soon = ""; }, 900);
+    };
+    paintMissions();
     restoreWallet().catch(() => {});
     {
       const eip = eth();
