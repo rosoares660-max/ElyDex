@@ -245,6 +245,38 @@
       .caret-i { display: inline-block; }
       .badge-btn::after { left: auto; right: 10px; transform: none; }
     }
+
+    .pts-wrap { position: relative; }
+    .chip { cursor: pointer; }
+    .pts-menu {
+      display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 35;
+      min-width: 180px; background: #12141d; border: 1px solid var(--line);
+      border-radius: 16px; padding: 8px;
+    }
+    .pts-menu.open { display: flex; flex-direction: column; gap: 6px; }
+    .pts-item {
+      width: 100%; text-align: left; background: transparent; border: 0; color: var(--text);
+      border-radius: 10px; padding: 10px 12px; font-weight: 800; cursor: pointer;
+    }
+    .pts-item:hover { background: rgba(255,255,255,.06); }
+    .pts-soon { position: relative; }
+    .modal-bg {
+      display: none; position: fixed; inset: 0; z-index: 50;
+      background: rgba(0,0,0,.55); place-items: center; padding: 20px;
+    }
+    .modal-bg.open { display: grid; }
+    .modal {
+      width: min(420px, 100%); background: #14161f; border: 1px solid var(--line);
+      border-radius: 24px; padding: 18px;
+    }
+    .mission {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line);
+      border-radius: 16px; padding: 12px;
+    }
+    .mission b { display: block; }
+    .mission span { color: var(--muted); font-size: 12px; }
+    .mission.done { border-color: rgba(94,200,255,.35); }
     .go.ok-flash { background: #9ae4ff; }
   </style>
 </head>
@@ -270,8 +302,13 @@
     <div class="right">
       <div class="acct-wrap">
         <div class="acct-menu" id="acctMenu">
-          <button class="badge-btn" id="btnBadges" type="button">Badges</button>
-          <div class="chip" title="Points from check-in and swaps">● <span id="ptsLabel">0</span> ElyPoints</div>
+          <div class="pts-wrap">
+            <button class="chip" id="btnPoints" type="button">● <span id="ptsLabel">0</span> ElyPoints</button>
+            <div class="pts-menu" id="ptsMenu">
+              <button class="pts-item pts-soon" id="btnBadges" type="button">Badges</button>
+              <button class="pts-item" id="btnMissions" type="button">Missions</button>
+            </div>
+          </div>
           <div class="check-wrap">
             <button class="check-sm ready" id="btnCheckIn">+50 Check-in</button>
           </div>
@@ -280,6 +317,23 @@
       </div>
     </div>
   </header>
+
+  <div class="modal-bg" id="missionsModal">
+    <div class="modal">
+      <div class="liq-head">
+        <p class="liq-title">Missions</p>
+        <button class="max-btn" id="btnCloseMissions" type="button">Close</button>
+      </div>
+      <p class="sub">Complete missions to support ElyDex.</p>
+      <div class="mission" id="missionFollow">
+        <div>
+          <b>Follow @ElyDex_hl</b>
+          <span>Open X and follow the official account</span>
+        </div>
+        <button class="go" id="btnFollowX" type="button" style="width:auto;margin:0;padding:10px 14px;">Follow</button>
+      </div>
+    </div>
+  </div>
   <main>
     <div class="panel">
       <div id="viewSwap">
@@ -1095,6 +1149,7 @@
     function closeMenus() {
       $("navMenu")?.classList.remove("open");
       $("acctMenu")?.classList.remove("open");
+      $("ptsMenu")?.classList.remove("open");
     }
     $("btnNavMenu").onclick = (e) => {
       e.stopPropagation();
@@ -1114,8 +1169,9 @@
     };
     document.addEventListener("click", (e) => {
       if (!isMobile()) return;
-      if (e.target.closest(".left") || e.target.closest(".acct-wrap")) return;
+      if (e.target.closest(".left") || e.target.closest(".acct-wrap") || e.target.closest(".pts-wrap")) return;
       closeMenus();
+      $("ptsMenu")?.classList.remove("open");
     });
     ["tabSwap","tabLiq","tabNft","tabFaucet"].forEach((id) => {
       const el = $(id);
@@ -1353,7 +1409,39 @@
       window.open("https://elysium.kinetiq.xyz/testnet-bridge", "_blank", "noopener");
     };
 
-    $("btnBadges").onclick = () => {};
+    $("btnPoints").onclick = (e) => {
+      e.stopPropagation();
+      $("ptsMenu").classList.toggle("open");
+    };
+    $("btnBadges").onclick = (e) => {
+      e.stopPropagation();
+      const t = e.currentTarget;
+      if (t.dataset.soon === "1") return;
+      t.dataset.soon = "1";
+      const prev = t.innerText;
+      t.innerText = "Soon";
+      setTimeout(() => { t.innerText = prev; t.dataset.soon = ""; }, 900);
+    };
+    $("btnMissions").onclick = (e) => {
+      e.stopPropagation();
+      $("ptsMenu").classList.remove("open");
+      $("missionsModal").classList.add("open");
+      paintFollow();
+    };
+    $("btnCloseMissions").onclick = () => $("missionsModal").classList.remove("open");
+    $("missionsModal").onclick = (e) => {
+      if (e.target.id === "missionsModal") $("missionsModal").classList.remove("open");
+    };
+    function paintFollow() {
+      const done = localStorage.getItem("elydex.mission.follow") === "1";
+      $("missionFollow").classList.toggle("done", done);
+      $("btnFollowX").innerText = done ? "Done" : "Follow";
+    }
+    $("btnFollowX").onclick = () => {
+      window.open("https://x.com/ElyDex_hl", "_blank", "noopener");
+      localStorage.setItem("elydex.mission.follow", "1");
+      paintFollow();
+    };
     restoreWallet().catch(() => {});
     {
       const eip = eth();
