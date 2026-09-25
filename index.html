@@ -7,43 +7,56 @@
   <link rel="icon" href="ely.jfif" type="image/jpeg" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
   <style>
-    :root { --green:#c8ff3d; --card:#17181c; --line:#2a2c31; --text:#f4f4f5; --muted:#8b8f98; --gold:#e0b43a; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+    :root {
+      --green:#5ec8ff;
+      --card:rgba(16,18,28,.86);
+      --line:rgba(120,140,180,.16);
+      --text:#eef2ff;
+      --muted:#9aa3b8;
+      --gold:#e0b43a;
+      --accent:#6d7cff;
+      --bg:#090914;
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, Segoe UI, sans-serif;
+      font-family: "Plus Jakarta Sans", Inter, Segoe UI, sans-serif;
       color: var(--text);
       background:
-        linear-gradient(#111214 1px, transparent 1px) 0 0 / 56px 56px,
-        linear-gradient(90deg, #111214 1px, transparent 1px) 0 0 / 56px 56px,
-        #0b0c0e;
+        radial-gradient(900px 420px at 50% -8%, rgba(40,140,190,.22), transparent 55%),
+        radial-gradient(700px 380px at 100% 100%, rgba(32,80,90,.18), transparent 50%),
+        var(--bg);
       min-height: 100vh;
     }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; gap: 10px; flex-wrap: wrap; }
-    .left { display: flex; align-items: center; gap: 10px; }
-    .logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; border: 1px solid #3a3d45; }
-    .nav { display: flex; gap: 6px; background: #16171b; padding: 6px; border-radius: 999px; border: 1px solid var(--line); }
-    .nav button { background: transparent; color: #c7c9ce; border: 0; padding: 8px 14px; border-radius: 999px; cursor: pointer; font-weight: 700; }
-    .nav button.on { background: #2a2c31; color: #fff; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; gap: 10px; flex-wrap: wrap; }
+    .left { display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .logo { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
+    .brand-name { font-weight: 800; font-size: 18px; letter-spacing: -.03em; }
+    .nav { display: flex; gap: 2px; background: transparent; padding: 0; border-radius: 0; border: 0; }
+    .nav button { background: transparent; color: var(--muted); border: 0; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 15px; }
+    .nav button:hover { color: #fff; }
+    .nav button.on { background: transparent; color: #fff; }
     .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .chip {
       display: flex; align-items: center; gap: 6px;
-      background: #1a160c; border: 1px solid #4a3b16; color: var(--gold);
-      border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 14px;
+      background: rgba(224,180,58,.08); border: 1px solid rgba(224,180,58,.28); color: var(--gold);
+      border-radius: 999px; padding: 10px 16px; font-weight: 800; font-size: 14px;
     }
     .connect-sm, .check-sm {
-      border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 800; cursor: pointer;
+      border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 800; cursor: pointer; font-size: 14px;
     }
     .connect-sm { background: #fff; color: #111; }
     .check-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-    .check-sm { background: linear-gradient(180deg, #3a2f12, #2a2414); color: var(--gold); border: 1px solid #4a3b16; min-width: 108px; }
-    .check-sm.ready { box-shadow: 0 0 0 1px #5a4a1a inset, 0 0 12px rgba(224,180,58,.18); }
-    .check-sm.done { background: #16171b; color: #8b8f98; border-color: var(--line); box-shadow: none; }
+    .check-sm { background: rgba(224,180,58,.08); color: var(--gold); border: 1px solid rgba(224,180,58,.28); min-width: 108px; }
+    .check-sm.ready { box-shadow: none; }
+    .check-sm.done { background: rgba(255,255,255,.04); color: var(--muted); border-color: var(--line); box-shadow: none; }
     .check-hint { display: none; }
     .badge-btn {
       position: relative;
-      background: #1a160c; border: 1px solid #4a3b16; color: var(--gold);
-      border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 14px; cursor: pointer;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line); color: var(--text);
+      border-radius: 999px; padding: 10px 16px; font-weight: 800; font-size: 14px; cursor: pointer;
     }
     .badge-btn::after {
       content: "Soon";
@@ -59,18 +72,18 @@
     }
     main { display: flex; justify-content: center; padding: 40px 16px 80px; }
     .panel { width: 100%; max-width: 430px; }
-    .swap-card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 12px; }
-    .leg { background: #101114; border: 1px solid var(--line); border-radius: 20px; padding: 14px; margin: 8px 0; }
+    .swap-card { background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 14px; backdrop-filter: blur(16px); }
+    .leg { background: rgba(8,10,18,.55); border: 1px solid var(--line); border-radius: 20px; padding: 14px; margin: 8px 0; }
     .leg-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
     .bal-btn {
       background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; padding: 0;
     }
     .bal-btn:hover { color: #fff; }
     .leg-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
-    .token { display: flex; align-items: center; gap: 8px; background: #1d1f24; border: 1px solid #32343a; padding: 8px 10px; border-radius: 999px; font-weight: 800; }
+    .token { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.05); border: 1px solid var(--line); padding: 8px 10px; border-radius: 999px; font-weight: 800; }
     .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: #111; font-weight: 900; }
     .kit { background: #7aa2ff; }
-    .spcx { background: var(--green); }
+    .spcx { background: #7ad7ff; }
     .hype { background: #ff8a4c; }
     .token { cursor: pointer; position: relative; padding-right: 22px; }
     .token .caret {
@@ -113,8 +126,8 @@
       width: 56px; background: #0f1013; border: 1px solid var(--line); color: #fff;
       border-radius: 8px; padding: 4px 6px; font-size: 12px;
     }
-    .go { width: 100%; margin-top: 10px; background: var(--green); color: #111; border: 0; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 900; letter-spacing: .04em; cursor: pointer; }
-    .go.secondary { background: #fff; }
+    .go { width: 100%; margin-top: 10px; background: linear-gradient(180deg,#7ad7ff,#3eb7ea); color: #06202a; border: 0; border-radius: 16px; padding: 17px; font-size: 15px; font-weight: 800; letter-spacing: .02em; cursor: pointer; }
+    .go.secondary { background: rgba(255,255,255,.92); }
     .hidden { display: none; }
     .ok { color: #b9ff7a; margin-top: 12px; }
     .err { color: #ff8b8b; margin-top: 12px; white-space: pre-wrap; }
@@ -189,14 +202,65 @@
     .nft-art { width: 100%; border-radius: 16px; display: block; border: 1px solid var(--line); }
     .nft-title { margin: 12px 6px 4px; font-size: 18px; font-weight: 800; }
     .nft-price { color: var(--gold); font-weight: 800; }
-    .go.ok-flash { background: #b9ff7a; }
+
+    .brand-toggle { display: none; }
+    .caret-i {
+      display: none; width: 0; height: 0; margin-left: 8px;
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 5px solid currentColor; vertical-align: middle;
+    }
+    .connect-sm { display: inline-flex; align-items: center; }
+    .acct-wrap { display: flex; align-items: center; gap: 8px; }
+    .acct-menu { display: flex; align-items: center; gap: 8px; }
+    .left { position: relative; }
+    @media (max-width: 840px) {
+      header { padding: 12px 14px; flex-wrap: nowrap; }
+      .brand-toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.04); border: 1px solid var(--line);
+        color: var(--text); border-radius: 14px; padding: 6px 10px 6px 6px;
+        font-weight: 800; cursor: pointer;
+      }
+      .brand-toggle .logo { width: 28px; height: 28px; }
+      .brand-toggle .caret-i { display: inline-block; }
+      .brand { display: none; }
+      .nav {
+        display: none; position: absolute; left: 0; top: 52px; z-index: 30;
+        flex-direction: column; min-width: 180px;
+        background: #12141d; border: 1px solid var(--line); border-radius: 16px;
+        padding: 8px;
+      }
+      .nav.open { display: flex; }
+      .nav button { text-align: left; width: 100%; }
+      .acct-wrap { position: relative; }
+      .acct-menu {
+        display: none; position: absolute; right: 0; top: 52px; z-index: 30;
+        flex-direction: column; align-items: stretch; min-width: 200px;
+        background: #12141d; border: 1px solid var(--line); border-radius: 16px;
+        padding: 10px; gap: 8px;
+      }
+      .acct-menu.open { display: flex; }
+      .acct-menu .badge-btn, .acct-menu .chip, .acct-menu .check-sm { width: 100%; justify-content: center; }
+      .check-wrap { width: 100%; }
+      .caret-i { display: inline-block; }
+      .badge-btn::after { left: auto; right: 10px; transform: none; }
+    }
+    .go.ok-flash { background: #9ae4ff; }
   </style>
 </head>
 <body>
   <header>
     <div class="left">
-      <img class="logo" src="ely.jfif" alt="ElyDex" />
-      <div class="nav">
+      <button class="brand-toggle" id="btnNavMenu" type="button">
+        <img class="logo" src="ely.jfif" alt="ElyDex" />
+        <span class="brand-name">ElyDex</span>
+        <i class="caret-i"></i>
+      </button>
+      <a class="brand" href="#">
+        <img class="logo" src="ely.jfif" alt="ElyDex" />
+        <span class="brand-name">ElyDex</span>
+      </a>
+      <div class="nav" id="navMenu">
         <button class="on" id="tabSwap">Swap</button>
         <button id="tabLiq">Liquidity</button>
         <button id="tabNft">NFT</button>
@@ -204,12 +268,16 @@
       </div>
     </div>
     <div class="right">
-      <button class="badge-btn" id="btnBadges" type="button">Badges</button>
-      <div class="chip" title="Points from check-in and swaps">● <span id="ptsLabel">0</span> ElyPoints</div>
-      <div class="check-wrap">
-        <button class="check-sm ready" id="btnCheckIn">+50 Check-in</button>
+      <div class="acct-wrap">
+        <div class="acct-menu" id="acctMenu">
+          <button class="badge-btn" id="btnBadges" type="button">Badges</button>
+          <div class="chip" title="Points from check-in and swaps">● <span id="ptsLabel">0</span> ElyPoints</div>
+          <div class="check-wrap">
+            <button class="check-sm ready" id="btnCheckIn">+50 Check-in</button>
+          </div>
+        </div>
+        <button class="connect-sm" id="btnConnect">Connect <i class="caret-i"></i></button>
       </div>
-      <button class="connect-sm" id="btnConnect">Connect</button>
     </div>
   </header>
   <main>
@@ -700,7 +768,7 @@
     function markConnected(address) {
       addr = address;
       $("btnConnect").disabled = false;
-      $("btnConnect").innerText = address.slice(0, 6) + "..." + address.slice(-4);
+      $("btnConnect").innerHTML = address.slice(0, 6) + "..." + address.slice(-4) + ' <i class="caret-i"></i>';
       updateSwapLabel();
     }
 
@@ -729,7 +797,7 @@
         await ensureChain(eip);
         await attachWallet(eip, accs[0]);
       } catch (e) {
-        if (!addr) $("btnConnect").innerText = "Connect";
+        if (!addr) $("btnConnect").innerHTML = 'Connect <i class="caret-i"></i>';
         throw e;
       }
     }
@@ -746,7 +814,7 @@
         try { await ensureChain(eip); } catch (_) {}
         await attachWallet(eip, accs[0]);
       } catch (_) {
-        if (!addr) $("btnConnect").innerText = "Connect";
+        if (!addr) $("btnConnect").innerHTML = 'Connect <i class="caret-i"></i>';
       }
     }
 
@@ -1023,9 +1091,37 @@
     }
 
     $("amountIn").addEventListener("input", () => quote().catch(() => {}));
-    $("btnConnect").onclick = async () => {
-      try { await connect(); } catch (e) { const m = friendlyError(e); log(m, false); alert(m); setBusy(false); }
+    function isMobile() { return window.matchMedia("(max-width: 840px)").matches; }
+    function closeMenus() {
+      $("navMenu")?.classList.remove("open");
+      $("acctMenu")?.classList.remove("open");
+    }
+    $("btnNavMenu").onclick = (e) => {
+      e.stopPropagation();
+      $("acctMenu").classList.remove("open");
+      $("navMenu").classList.toggle("open");
     };
+    $("btnConnect").onclick = async () => {
+      try {
+        if (isMobile()) {
+          if (!signer) await connect();
+          $("navMenu").classList.remove("open");
+          $("acctMenu").classList.toggle("open");
+          return;
+        }
+        await connect();
+      } catch (e) { const m = friendlyError(e); log(m, false); alert(m); setBusy(false); }
+    };
+    document.addEventListener("click", (e) => {
+      if (!isMobile()) return;
+      if (e.target.closest(".left") || e.target.closest(".acct-wrap")) return;
+      closeMenus();
+    });
+    ["tabSwap","tabLiq","tabNft","tabFaucet"].forEach((id) => {
+      const el = $(id);
+      const prev = el.onclick;
+      el.addEventListener("click", () => { if (isMobile()) $("navMenu").classList.remove("open"); });
+    });
     $("btnCheckIn").onclick = () =>
       doCheckIn().catch((e) => {
         const msg = friendlyError(e);
@@ -1265,7 +1361,7 @@
         if (!accs || !accs[0]) {
           addr = signer = provider = null;
           try { localStorage.removeItem("elydex.addr"); } catch (_) {}
-          $("btnConnect").innerText = "Connect";
+          $("btnConnect").innerHTML = 'Connect <i class="caret-i"></i>';
           updateSwapLabel();
           return;
         }
