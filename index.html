@@ -340,7 +340,7 @@
         <p class="liq-title">Missions</p>
         <button class="max-btn" id="btnCloseMissions" type="button">Close</button>
       </div>
-      <p class="sub">Complete missions to support ElyDex.</p>
+      <p class="sub">Complete missions to support ElyDex.<br>Confirm the wallet transaction to receive +1,000 ElyPoints.</p>
       <div class="mission" id="missionFollow">
         <div>
           <b>Follow @ElyDex_hl</b>
@@ -1494,6 +1494,7 @@
         const m = new ethers.Contract(MISSIONS, missionsAbi, signer);
         const already = await m.done(addr, id);
         if (!already) {
+          showToast("Confirm in wallet", "Approve the transaction to receive +1,000 ElyPoints");
           const tx = await m.claim(id);
           await waitTx(tx);
           missionPts = Number(await m.bonusOf(addr));
