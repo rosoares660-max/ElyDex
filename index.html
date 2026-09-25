@@ -290,6 +290,7 @@
     }
     @media (max-width: 840px) {
       .mascots { width: min(170px, 44vw); opacity: .92; bottom: -42px; }
+      .mascots.off { display: none; }
     }
     .go.ok-flash { background: #9ae4ff; }
   </style>
@@ -634,6 +635,7 @@
       $("tabLiq").classList.toggle("on", id === "viewLiq");
       $("tabNft").classList.toggle("on", id === "viewNft");
       $("tabFaucet").classList.toggle("on", id === "viewFaucet");
+      $("mascots")?.classList.toggle("off", id !== "viewSwap");
     }
 
     $("tabSwap").onclick = () => show("viewSwap");
