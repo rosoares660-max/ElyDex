@@ -282,6 +282,14 @@
       background: #3dce6a;
       color: #06210e;
     }
+
+    .mascots {
+      position: fixed; left: 8px; bottom: 0; z-index: 12;
+      width: min(280px, 36vw); pointer-events: none; user-select: none;
+    }
+    @media (max-width: 840px) {
+      .mascots { width: min(150px, 42vw); opacity: .92; }
+    }
     .go.ok-flash { background: #9ae4ff; }
   </style>
 </head>
@@ -347,6 +355,7 @@
       </div>
     </div>
   </div>
+  <img class="mascots" id="mascots" src="mascots.jpg" alt="ElyDex mascots" />
   <main>
     <div class="panel">
       <div id="viewSwap">
@@ -1449,8 +1458,8 @@
       const f = localStorage.getItem("elydex.mission.follow") === "1";
       const sh = localStorage.getItem("elydex.mission.share") === "1";
       $("missionFollow").classList.toggle("done", f);
-      $("btnFollowX").innerText = f ? "Feita" : "Follow";
-      $("btnShareX").innerText = sh ? "Feita" : "Open";
+      $("btnFollowX").innerText = f ? "Done" : "Follow";
+      $("btnShareX").innerText = sh ? "Done" : "Open";
       $("missionShare").classList.toggle("done", sh);
     }
     $("btnFollowX").onclick = () => {
